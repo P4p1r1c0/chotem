@@ -585,6 +585,7 @@ async function useTemplate(t){
   const signers = t.signers.map((s, i) => { const id = s.id === 'me' ? 'me' : uid(); map[s.id] = id; return {id, name: s.id === 'me' ? (m.name || s.name) : s.name, color:s.color}; });
   const doc = {id:uid(), name:t.name, mode:signers.length > 1 ? 'multi' : 'self', status:'draft', created:Date.now(), updated:Date.now(), pdf:copyBuf(t.pdf), thumb:t.thumb, pages:t.pages, signers,
     fields:t.fields.map(f => ({...f, id:uid(), signer:map[f.signer] || signers[0].id, value:'', filledAt:0})), audit:[{t:Date.now(), a:`נוצר מהתבנית "${t.name}"`, who:m.name || 'אני'}], hash:t.hash, tpl:t.id};
+  if (t.id === FORM_ID){ const now = Date.now(); for (const f of doc.fields){ if (f.key === 'measurerSig' && m.sig){ f.value = m.sig; f.filledAt = now; } if (f.key === 'measurer' && m.name){ f.value = m.name; f.filledAt = now; } } }
   await Store.put('docs', doc); openEditor(doc);
 }
 async function saveTemplate(doc){
