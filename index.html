@@ -930,7 +930,7 @@ async function viewDoc(d){
 
 /* ---------- Dropbox (installed app only; the artifact sandbox blocks Dropbox's API) ---------- */
 const Dbx = {
-  cfg(){ return Store.get('kv', 'dbx') || {id:'dbx', key:'', refresh:'', access:'', exp:0, folder:'/מסמכים חתומים', account:''}; },
+  cfg(){ return Store.get('kv', 'dbx') || {id:'dbx', key:'oxmpuft7fiizxrs', refresh:'', access:'', exp:0, folder:'/מסמכים חתומים', account:''}; },
   available(){ return !inArtifact(); },
   connected(){ const c = this.cfg(); return this.available() && !!c.refresh; },
   redirect(){ return location.origin + location.pathname; },
@@ -1005,7 +1005,7 @@ function renderDbxCard(){
   if (!Dbx.available()){ C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">זמין בגרסה המותקנת</div><div class="hint">החיבור לדרופבוקס עובד באפליקציה שמותקנת בטלפון, לא בתצוגה המקדימה הזו.</div></div>`; return; }
   if (!c.refresh){
     C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">לא מחובר</div><div class="hint">מסמכים חתומים יישמרו אוטומטית בתיקייה בדרופבוקס</div></div><button class="btn sm primary" id="dbx-conn">חיבור</button>`;
-    $('#dbx-conn').onclick = dbxConnectDialog; return;
+    $('#dbx-conn').onclick = () => { const k = Dbx.cfg().key; if (k) Dbx.connect(k); else dbxConnectDialog(); }; return;
   }
   C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">מחובר${c.account ? ' · ' + esc(c.account) : ''}</div><div class="hint" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">שמירה אוטומטית אל <span dir="ltr">${esc(c.folder)}</span></div></div><button class="btn sm" id="dbx-folder">תיקייה</button><button class="btn sm" id="dbx-off" aria-label="ניתוק">ניתוק</button>`;
   $('#dbx-folder').onclick = async () => { const p = await dbxBrowse({mode:'folder', start:c.folder}); if (p){ const cc = Dbx.cfg(); cc.folder = p; await Store.put('kv', cc); renderHome(); toast('המסמכים החתומים יישמרו ב-' + p); } };
@@ -1108,7 +1108,7 @@ function pickMode(){
 
 $('#act-dbx').onclick = async () => {
   if (!Dbx.available()){ toast('החיבור לדרופבוקס זמין בגרסה המותקנת'); return; }
-  if (!Dbx.connected()){ dbxConnectDialog(); return; }
+  if (!Dbx.connected()){ const k = Dbx.cfg().key; if (k) Dbx.connect(k); else dbxConnectDialog(); return; }
   const e = await dbxBrowse({mode:'file', start:Store.get('kv', 'dbx_last')?.path || ''}); if (!e) return;
   Store.put('kv', {id:'dbx_last', path:e.path_display.split('/').slice(0, -1).join('/')});
   const mode = await pickMode(); if (!mode) return;
