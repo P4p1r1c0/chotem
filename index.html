@@ -103,6 +103,8 @@ main{flex:1}
 .overlay.placing{cursor:crosshair;outline:2px dashed var(--accent);outline-offset:3px}
 .field{position:absolute;border:1.5px dashed var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);border-radius:4px;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--c);font-size:11px;font-weight:500;overflow:visible}
 .field.filled{background:transparent;border-color:transparent}
+.field.lock{touch-action:manipulation}
+.stepbar{font-size:13px;font-weight:600;color:var(--accent)}
 .field.filled.mine-edit{border-color:color-mix(in srgb,var(--c) 45%,transparent)}
 .field .ph{display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;padding:0 4px;max-width:100%;text-overflow:ellipsis}
 .field img{width:100%;height:100%;object-fit:contain;pointer-events:none}
@@ -713,7 +715,7 @@ function drawFields(){
     const p = E.pagesInfo[f.page]; if (!p) continue;
     const s = signerById(f.signer); const el = document.createElement('div');
     const mine = E.mode === 'sign' && f.signer === currentSigner().id;
-    el.className = 'field' + (f.value ? ' filled' : '') + (E.sel === f.id ? ' sel' : '') + (E.mode === 'sign' && !mine ? ' dim' : '') + (mine && !f.value && f.type !== 'checkbox' ? ' todo' : '') + (f.value && canEditField(f) ? ' mine-edit' : '');
+    el.className = 'field' + (f.value ? ' filled' : '') + (E.sel === f.id ? ' sel' : '') + (E.mode === 'sign' && !mine ? ' dim' : '') + (mine && !f.value && f.type !== 'checkbox' ? ' todo' : '') + (f.value && canEditField(f) ? ' mine-edit' : '') + (E.doc.tpl ? ' lock' : '');
     el.style.cssText = `left:${f.x*100}%;top:${f.y*100}%;width:${f.w*100}%;height:${f.h*100}%;--c:var(${s.color})`;
     el.dataset.id = f.id;
     if (f.value){
@@ -721,10 +723,10 @@ function drawFields(){
       else { const hPx = p.ov.clientHeight * f.h; el.innerHTML = `<span class="tv" style="--fs:${Math.max(7, hPx*0.62)}px;${f.type==='checkbox'?'text-align:center;font-weight:700':''}">${esc(f.value)}</span>`; }
     } else {
       const multi = E.doc.signers.length > 1;
-      el.innerHTML = `<span class="ph">${FIELD_TYPES[f.type].label}${multi && f.type !== 'checkbox' ? ' · ' + esc(s.name) : ''}</span>`;
+      el.innerHTML = `<span class="ph">${E.doc.tpl && f.label ? esc(f.label) + (f.signer !== 'me' ? ' · ' + esc(s.name) : '') : FIELD_TYPES[f.type].label + (multi && f.type !== 'checkbox' ? ' · ' + esc(s.name) : '')}</span>`;
       if (f.type === 'checkbox') el.innerHTML = '';
     }
-    if (E.mode === 'prepare' && E.sel === f.id) el.insertAdjacentHTML('beforeend', '<button class="x" aria-label="מחיקת שדה">×</button><span class="rs" aria-hidden="true">⤡</span>');
+    if (E.mode === 'prepare' && E.sel === f.id && !E.doc.tpl) el.insertAdjacentHTML('beforeend', '<button class="x" aria-label="מחיקת שדה">×</button><span class="rs" aria-hidden="true">⤡</span>');
     p.ov.appendChild(el); bindField(el, f, p);
   }
   renderTray();
@@ -735,7 +737,7 @@ function bindField(el, f, p){
   el.addEventListener('pointerdown', e => {
     if (e.target.classList.contains('x')) return;
     e.stopPropagation();
-    if (E.mode !== 'prepare'){ st = {sx:e.clientX, sy:e.clientY, moved:false, kind:'tap'}; return; }
+    if (E.mode !== 'prepare' || E.doc.tpl){ st = {sx:e.clientX, sy:e.clientY, moved:false, kind:'tap'}; return; }
     el.setPointerCapture(e.pointerId);
     st = {sx:e.clientX, sy:e.clientY, fx:f.x, fy:f.y, fw:f.w, fh:f.h, moved:false, kind:e.target.classList.contains('rs') ? 'resize' : 'move'};
   });
@@ -753,6 +755,7 @@ function bindField(el, f, p){
   });
   el.addEventListener('pointerup', e => {
     if (!st) return; const s0 = st; st = null;
+    if (s0.kind === 'tap' && Math.hypot(e.clientX - s0.sx, e.clientY - s0.sy) > 12) return;
     if (s0.moved){ save(); drawFields(); return; }
     onFieldTap(f);
   });
@@ -761,6 +764,10 @@ function bindField(el, f, p){
 }
 
 async function onFieldTap(f){
+  if (E.mode === 'prepare' && E.doc.tpl){
+    if (f.signer !== 'me'){ toast('את השדה הזה ימלא הלקוח בשלב החתימה'); return; }
+    await fillField(f); return;
+  }
   if (E.mode === 'prepare'){
     const wasSel = E.sel === f.id; E.sel = f.id;
     if ((E.doc.mode === 'self' && (wasSel || !f.value)) || (E.doc.mode === 'multi' && f.signer === 'me' && (wasSel || !f.value))) { drawFields(); await fillField(f); }
@@ -788,6 +795,14 @@ async function fillField(f){
 }
 
 function onOverlayClick(e){
+  if (E.doc && E.doc.tpl && !E.tool){
+    if (e.target.closest('.field')) return;
+    const ov = e.currentTarget, r = ov.getBoundingClientRect(), page = +ov.dataset.page; let best = null, bd = 28;
+    for (const f of E.doc.fields){ if (f.page !== page) continue; const L = r.left + f.x * r.width, T = r.top + f.y * r.height, R = L + f.w * r.width, B = T + f.h * r.height;
+      const dx = Math.max(L - e.clientX, 0, e.clientX - R), dy = Math.max(T - e.clientY, 0, e.clientY - B), dd = Math.hypot(dx, dy); if (dd < bd){ bd = dd; best = f; } }
+    if (best && (E.mode === 'prepare' || best.signer === currentSigner().id)) onFieldTap(best);
+    return;
+  }
   if (E.mode !== 'prepare') return;
   if (!E.tool){ if (E.sel){ E.sel = null; drawFields(); } return; }
   const ov = e.currentTarget, r = ov.getBoundingClientRect(), page = +ov.dataset.page, info = E.pagesInfo[page];
@@ -803,11 +818,11 @@ function renderTray(){
   if (E.mode === 'prepare'){
     const multi = E.doc.mode === 'multi';
     const empty = E.doc.fields.filter(f => !f.value).length; const form = !!E.doc.tpl;
-    T.innerHTML = `${zoomRow(true)}
+    T.innerHTML = `${form ? '<div class="stepbar">שלב 1 מתוך 2: מילוי הטופס על ידי המודד</div>' : ''}${zoomRow(true)}
       ${multi && !form ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
       ${form ? '' : `<div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>`}
       <div class="row"><span class="hint" style="flex:1 1 220px;min-width:0">${form && !E.sel ? 'הקישו על שדה למילוי, או "מילוי מהיר" לכל השדות ברשימה. אפשר להגדיל בצביטה או ב־+' : E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה · הקשה נוספת על שדה שלך ממלאת אותו' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
-      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>להתחיל חתימה</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
+      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>${form ? 'המשך להחתמת הלקוח' : 'להתחיל חתימה'}</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
     $$('.tool', T).forEach(b => b.onclick = () => { E.tool = E.tool === b.dataset.tool ? null : b.dataset.tool; E.sel = null; drawFields(); });
     $$('.signer', T).forEach(b => b.onclick = () => {
       E.activeSigner = b.dataset.s;
@@ -865,7 +880,10 @@ async function editSigners(){
 }
 
 async function startSigning(){
-  const d = E.doc; nameFromFields(d); const without = d.signers.filter(s => !d.fields.some(f => f.signer === s.id));
+  const d = E.doc;
+  if (d.tpl){ const miss = d.fields.filter(f => f.signer === 'me' && f.type !== 'checkbox' && !f.value);
+    if (miss.length && !(await confirmBox('הטופס עוד לא מולא', `חסרים ${miss.length} שדות של המודד (${miss.slice(0, 4).map(f => f.label || FIELD_TYPES[f.type].label).join(', ')}${miss.length > 4 ? '...' : ''}). לעבור בכל זאת ללקוח?`, 'לעבור ללקוח'))) return; }
+  nameFromFields(d); const without = d.signers.filter(s => !d.fields.some(f => f.signer === s.id));
   if (without.length && !(await confirmBox('יש חותמים בלי שדות', `${without.map(s => s.name).join(', ')} לא קיבלו אף שדה. להמשיך בלעדיהם?`, 'להמשיך'))) return;
   d.signers = d.signers.filter(s => d.fields.some(f => f.signer === s.id));
   d.status = 'pending'; d.signIdx = d.signers.findIndex(s => s.id !== 'me' && d.fields.some(f => f.signer === s.id && !f.value && f.type !== 'checkbox')); if (d.signIdx < 0) d.signIdx = 0;
@@ -1365,6 +1383,7 @@ async function startForm(){
   let t = Store.get('templates', FORM_ID); if (!t){ await ensureForm(); t = Store.get('templates', FORM_ID); }
   if (!t){ toast('לא הצלחתי לטעון את הטופס. בדקו חיבור לאינטרנט'); return; }
   await useTemplate(t);
+  setTimeout(() => { if (E.doc && E.doc.tpl && E.mode === 'prepare') quickFill(); }, 700);
 }
 function nameFromFields(d){
   const v = k => (d.fields.find(f => f.key === k) || {}).value || '';
