@@ -1,8 +1,8 @@
-const C="chotem-v4";const A=["./","index.html","manifest.json","icon-192.png","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"];
+const C="chotem-v5";const A=["./","index.html","manifest.json","icon-192.png","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&x!=="chotem-share").map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{const q=e.request;
 if(q.method==="POST"&&new URL(q.url).pathname.endsWith("/share")){e.respondWith((async()=>{const f=await q.formData();const file=f.getAll("file").find(x=>x&&x.size);if(file){const c=await caches.open("chotem-share");await c.put("shared-file",new Response(file,{headers:{"x-name":encodeURIComponent(file.name||"document.pdf")}}));}return Response.redirect(new URL("./?shared=1",self.registration.scope).href,303);})());return;}
 if(q.method!=="GET")return;const same=q.url.startsWith(self.location.origin);
-if(same){e.respondWith(fetch(q).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(q,cp));}return res;}).catch(()=>caches.match(q,{ignoreSearch:true}).then(r=>r||caches.match("index.html"))));return;}
+if(same){e.respondWith(fetch(q,{cache:"no-cache"}).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(q,cp));}return res;}).catch(()=>caches.match(q,{ignoreSearch:true}).then(r=>r||caches.match("index.html"))));return;}
 if(/cdnjs|gstatic|googleapis/.test(q.url))e.respondWith(caches.match(q).then(r=>r||fetch(q).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(q,cp));}return res;})));});
