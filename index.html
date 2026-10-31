@@ -132,6 +132,19 @@ main{flex:1}
 .progress b{display:block;height:100%;background:var(--accent);transition:width .3s}
 .consent{display:flex;gap:8px;align-items:flex-start;font-size:13.5px}
 .consent input{width:20px;height:20px;margin-top:1px;accent-color:var(--accent)}
+.zoomrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.zbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:22px;line-height:1;display:grid;place-items:center;padding:0}
+.zval{min-width:48px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+#s-editor main{overflow-x:auto}
+.pages{touch-action:pan-x pan-y}
+.pages.zoomed{align-items:flex-start}
+.qf-group{display:flex;flex-direction:column;gap:6px}
+.qf-label{font-size:13px;color:var(--muted)}
+.qf-opts{display:flex;flex-wrap:wrap;gap:6px}
+.qf-opt{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:14px}
+.qf-opt[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.qf-sig{display:flex;gap:10px;align-items:center}
+.qf-sig img{height:42px;max-width:160px;background:#fff;border-radius:6px;border:1px solid var(--line)}
 
 /* handoff + done */
 .center{min-height:calc(100vh - 140px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-block:30px}
@@ -569,7 +582,7 @@ async function useTemplate(t){
   const m = me(); const map = {};
   const signers = t.signers.map((s, i) => { const id = s.id === 'me' ? 'me' : uid(); map[s.id] = id; return {id, name: s.id === 'me' ? (m.name || s.name) : s.name, color:s.color}; });
   const doc = {id:uid(), name:t.name, mode:signers.length > 1 ? 'multi' : 'self', status:'draft', created:Date.now(), updated:Date.now(), pdf:copyBuf(t.pdf), thumb:t.thumb, pages:t.pages, signers,
-    fields:t.fields.map(f => ({...f, id:uid(), signer:map[f.signer] || signers[0].id, value:'', filledAt:0})), audit:[{t:Date.now(), a:`נוצר מהתבנית "${t.name}"`, who:m.name || 'אני'}], hash:t.hash};
+    fields:t.fields.map(f => ({...f, id:uid(), signer:map[f.signer] || signers[0].id, value:'', filledAt:0})), audit:[{t:Date.now(), a:`נוצר מהתבנית "${t.name}"`, who:m.name || 'אני'}], hash:t.hash, tpl:t.id};
   await Store.put('docs', doc); openEditor(doc);
 }
 async function saveTemplate(doc){
@@ -584,19 +597,79 @@ async function renderPages(container, buf){
   const token = ++pdfRenderToken; container.innerHTML = '<div class="loading">טוען את המסמך…</div>';
   const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf)), disableFontFace:true}).promise;
   if (token !== pdfRenderToken) return [];
-  container.innerHTML = ''; const out = [];
-  const cssW = Math.min(container.clientWidth || 360, 820); const dpr = Math.min(2, window.devicePixelRatio || 1);
+  container.innerHTML = ''; container.classList.remove('zoomed'); const out = [];
+  const cssW = Math.min(container.clientWidth || 360, 820); out.baseW = cssW; out.zoom = 1;
   for (let i = 1; i <= pdf.numPages; i++){
-    const pg = await pdf.getPage(i); const vp1 = pg.getViewport({scale:1}); const vp = pg.getViewport({scale: cssW / vp1.width * dpr});
-    const wrap = document.createElement('div'); wrap.className = 'page'; wrap.style.maxWidth = cssW + 'px'; wrap.style.aspectRatio = `${vp1.width} / ${vp1.height}`;
-    const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; wrap.appendChild(cv);
+    const pg = await pdf.getPage(i); const vp1 = pg.getViewport({scale:1});
+    const wrap = document.createElement('div'); wrap.className = 'page'; wrap.style.width = cssW + 'px'; wrap.style.maxWidth = 'none'; wrap.style.aspectRatio = `${vp1.width} / ${vp1.height}`;
+    const cv = document.createElement('canvas'); wrap.appendChild(cv);
     const ov = document.createElement('div'); ov.className = 'overlay'; ov.dataset.page = i - 1; wrap.appendChild(ov);
     const no = document.createElement('div'); no.className = 'pno'; no.textContent = `עמוד ${i} מתוך ${pdf.numPages}`; wrap.appendChild(no);
-    container.appendChild(wrap); out.push({ov, aspect: vp1.height / vp1.width});
-    pg.render({canvasContext:cv.getContext('2d'), viewport:vp});
+    container.appendChild(wrap); const info = {ov, aspect: vp1.height / vp1.width, pg, cv, wrap, vp1}; out.push(info);
+    paintPage(info, cssW);
     if (token !== pdfRenderToken) return out;
   }
   return out;
+}
+function paintPage(info, cssW){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const vp = info.pg.getViewport({scale: Math.min(cssW * dpr, 3200) / info.vp1.width});
+  if (info.task){ try{ info.task.cancel(); }catch(e){} }
+  const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+  info.task = info.pg.render({canvasContext:cv.getContext('2d'), viewport:vp});
+  info.task.promise.then(() => { info.cv.replaceWith(cv); info.cv = cv; }).catch(() => {});
+}
+function setZoom(z){
+  const P = E.pagesInfo; if (!P || !P.length || !P.baseW) return;
+  z = Math.max(1, Math.min(4, Math.round(z * 100) / 100)); if (z === P.zoom) return;
+  const sc = document.scrollingElement, ry = (sc.scrollTop + innerHeight / 2) / (sc.scrollHeight || 1);
+  P.zoom = z; const w = Math.round(P.baseW * z);
+  $('#pages').classList.toggle('zoomed', z > 1);
+  P.forEach(p => p.wrap.style.width = w + 'px');
+  sc.scrollTop = ry * sc.scrollHeight - innerHeight / 2;
+  const zv = $('#zval'); if (zv) zv.textContent = Math.round(z * 100) + '%';
+  clearTimeout(setZoom.t); setZoom.t = setTimeout(() => { P.forEach(p => paintPage(p, w)); drawFields(); }, 250);
+}
+async function saveDraft(){ if (E.doc.tpl) nameFromFields(E.doc); $('#ed-title').textContent = E.doc.name; await save(); toast('נשמר. אפשר להמשיך מאוחר יותר מהרשימה'); }
+async function quickFill(){
+  const d = E.doc; const who = E.mode === 'sign' ? currentSigner().id : (d.mode === 'self' ? d.signers[0].id : 'me');
+  const fs = d.fields.filter(f => f.signer === who).sort((a, b) => a.page - b.page || a.y - b.y || b.x - a.x);
+  if (!fs.length){ toast('אין כאן שדות למילוי'); return; }
+  const lbl = f => f.label || FIELD_TYPES[f.type].label; const done = new Set(); let html = '<h3>מילוי מהיר</h3>';
+  for (const f of fs){
+    if (f.type === 'checkbox'){
+      const g = f.group || ''; if (done.has('g:' + g)) continue; done.add('g:' + g);
+      const items = fs.filter(c => c.type === 'checkbox' && (c.group || '') === g);
+      html += `<div class="qf-group"><span class="qf-label">${esc(g || 'סימון')}</span><div class="qf-opts">${items.map(c => `<button type="button" class="qf-opt" data-cb="${c.id}" aria-pressed="${!!c.value}">${esc(c.label || '✓')}</button>`).join('')}</div></div>`;
+    } else if (f.type === 'signature' || f.type === 'initials'){
+      html += `<div class="qf-group"><span class="qf-label">${esc(lbl(f))}</span><div class="qf-sig">${f.value ? `<img src="${f.value}" alt="">` : ''}<button type="button" class="btn sm" data-sig="${f.id}">${f.value ? 'לחתום מחדש' : 'לחתום'}</button></div></div>`;
+    } else {
+      const s = signerById(f.signer); const v = f.value || (f.type === 'name' && !['מודד','אני','לקוח'].includes(s.name) ? s.name : '');
+      html += `<label class="qf-group"><span class="qf-label">${esc(lbl(f))}</span><span class="row" style="flex-wrap:nowrap"><input class="inp" data-qf="${f.id}" value="${esc(v)}" ${f.type === 'date' ? 'placeholder="dd/mm/yyyy" inputmode="numeric"' : ''}>${f.type === 'date' ? `<button type="button" class="btn sm" data-today="${f.id}">היום</button>` : ''}</span></label>`;
+    }
+  }
+  html += '<div class="foot"><button class="btn" data-x>ביטול</button><button class="btn primary" data-ok>שמירה</button></div>';
+  const sigs = {};
+  const ok = await modal(html, (s, close) => {
+    $$('[data-cb]', s).forEach(b => b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'));
+    $$('[data-today]', s).forEach(b => b.onclick = () => { $(`[data-qf="${b.dataset.today}"]`, s).value = fmtDate(Date.now()); });
+    $$('[data-sig]', s).forEach(b => b.onclick = async () => {
+      const f = d.fields.find(z => z.id === b.dataset.sig); const sg = signerById(f.signer);
+      const v = await sigPad({kind:f.type, name:sg.name, allowSaved:sg.id === 'me'}); if (!v) return;
+      sigs[f.id] = v; let img = b.parentElement.querySelector('img'); if (!img){ img = document.createElement('img'); b.before(img); } img.src = v; b.textContent = 'לחתום מחדש';
+    });
+    $('[data-x]', s).onclick = () => close(false);
+    $('[data-ok]', s).onclick = () => {
+      const set = (f, v) => { if (v !== (f.value || '')){ f.value = v; f.filledAt = v ? Date.now() : 0; } };
+      $$('[data-qf]', s).forEach(i => set(d.fields.find(z => z.id === i.dataset.qf), i.value.trim()));
+      $$('[data-cb]', s).forEach(b => set(d.fields.find(z => z.id === b.dataset.cb), b.getAttribute('aria-pressed') === 'true' ? '✓' : ''));
+      Object.entries(sigs).forEach(([id, v]) => set(d.fields.find(z => z.id === id), v));
+      close(true);
+    };
+  });
+  if (!ok) return;
+  if (d.tpl && E.mode === 'prepare') nameFromFields(d);
+  $('#ed-title').textContent = d.name; await save(); drawFields(); toast('נשמר');
 }
 
 /* ---------- editor & signing ---------- */
@@ -620,6 +693,13 @@ $('#ed-back').onclick = async () => {
 };
 $('#ed-rename').onclick = async () => { const n = await askText('שם המסמך', E.doc.name, {ok:'שמירה'}); if (n){ E.doc.name = n; $('#ed-title').textContent = n; await save(); } };
 $('#ed-savetpl').onclick = () => saveTemplate(E.doc);
+(() => {
+  const el = $('#pages'); let d0 = 0, z0 = 1;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  el.addEventListener('touchstart', e => { if (e.touches.length === 2){ d0 = dist(e.touches); z0 = (E.pagesInfo && E.pagesInfo.zoom) || 1; } }, {passive:true});
+  el.addEventListener('touchmove', e => { if (e.touches.length === 2 && d0){ e.preventDefault(); setZoom(z0 * dist(e.touches) / d0); } }, {passive:false});
+  el.addEventListener('touchend', e => { if (e.touches.length < 2) d0 = 0; });
+})();
 
 function canEditField(f){
   if (E.mode === 'prepare') return E.doc.mode === 'self';
@@ -722,11 +802,11 @@ function renderTray(){
   const T = $('#tray-in'); if (!E.doc) return;
   if (E.mode === 'prepare'){
     const multi = E.doc.mode === 'multi';
-    const empty = E.doc.fields.filter(f => !f.value).length;
-    T.innerHTML = `
-      ${multi ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
-      <div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>
-      <div class="row"><span class="hint" style="flex:1 1 220px;min-width:0">${E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה · הקשה נוספת על שדה שלך ממלאת אותו' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
+    const empty = E.doc.fields.filter(f => !f.value).length; const form = !!E.doc.tpl;
+    T.innerHTML = `${zoomRow(true)}
+      ${multi && !form ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
+      ${form ? '' : `<div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>`}
+      <div class="row"><span class="hint" style="flex:1 1 220px;min-width:0">${form && !E.sel ? 'הקישו על שדה למילוי, או "מילוי מהיר" לכל השדות ברשימה. אפשר להגדיל בצביטה או ב־+' : E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה · הקשה נוספת על שדה שלך ממלאת אותו' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
       ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>להתחיל חתימה</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
     $$('.tool', T).forEach(b => b.onclick = () => { E.tool = E.tool === b.dataset.tool ? null : b.dataset.tool; E.sel = null; drawFields(); });
     $$('.signer', T).forEach(b => b.onclick = () => {
@@ -735,18 +815,30 @@ function renderTray(){
       drawFields();
     });
     const se = $('#sg-edit', T); if (se) se.onclick = editSigners;
+    bindZoomRow(T);
     $('#go', T).onclick = multi ? startSigning : finalize;
   } else {
     const s = currentSigner(); const mine = E.doc.fields.filter(f => f.signer === s.id); const req = mine.filter(f => f.type !== 'checkbox'); const done = req.filter(f => f.value).length;
     const ready = done === req.length && E.consent;
-    T.innerHTML = `
+    T.innerHTML = `${zoomRow(false)}
       <div class="row"><span class="signer" aria-pressed="true" style="--c:var(${s.color})"><i></i>${esc(s.name)}</span><div class="progress"><b style="width:${req.length ? done/req.length*100 : 100}%"></b></div><span class="hint">${done}/${req.length}</span></div>
       <label class="consent"><input type="checkbox" id="consent" ${E.consent ? 'checked' : ''}> אני מסכים/ה לחתום על המסמך באופן אלקטרוני, וחתימתי זו מחייבת כמו חתימה בכתב יד.</label>
       <div class="row"><button class="btn" id="next" style="flex:1" ${done === req.length ? 'disabled' : ''}>לשדה הבא</button><button class="btn primary" id="done" style="flex:1" ${ready ? '' : 'disabled'}>סיימתי לחתום</button></div>`;
     $('#consent', T).onchange = e => { E.consent = e.target.checked; renderTray(); };
+    bindZoomRow(T);
     $('#next', T).onclick = nextEmpty;
     $('#done', T).onclick = signerDone;
   }
+}
+
+function zoomRow(withSave){
+  const z = (E.pagesInfo && E.pagesInfo.zoom) || 1;
+  return `<div class="zoomrow"><button class="zbtn" id="zout" aria-label="הקטנה">−</button><span class="zval" id="zval">${Math.round(z * 100)}%</span><button class="zbtn" id="zin" aria-label="הגדלה">+</button><span class="spacer"></span><button class="btn sm" id="qfill">מילוי מהיר</button>${withSave ? '<button class="btn sm" id="dsave">שמירה</button>' : ''}</div>`;
+}
+function bindZoomRow(T){
+  const z = () => (E.pagesInfo && E.pagesInfo.zoom) || 1;
+  $('#zout', T).onclick = () => setZoom(z() / 1.25); $('#zin', T).onclick = () => setZoom(z() * 1.25);
+  $('#qfill', T).onclick = quickFill; const ds = $('#dsave', T); if (ds) ds.onclick = saveDraft;
 }
 
 function nextEmpty(){
@@ -1256,8 +1348,8 @@ function remoteDone(d){
 }
 
 /* ---------- the measurement form: the only client template ---------- */
-const FORM_ID = 'measure-form', FORM_V = 1;
-const FORM_FIELDS = [{"type":"text","page":0,"x":0.5049,"y":0.1787,"w":0.2222,"h":0.0177,"signer":"me","key":"orderNo"},{"type":"text","page":0,"x":0.0425,"y":0.1787,"w":0.2206,"h":0.0177,"signer":"me","key":"clientName"},{"type":"text","page":0,"x":0.5049,"y":0.2001,"w":0.2222,"h":0.0164,"signer":"me","key":"address"},{"type":"text","page":0,"x":0.0425,"y":0.2001,"w":0.2206,"h":0.0164,"signer":"me","key":"phone"},{"type":"text","page":0,"x":0.5049,"y":0.2203,"w":0.2222,"h":0.0177,"signer":"me","key":"apt"},{"type":"text","page":0,"x":0.0425,"y":0.2203,"w":0.2206,"h":0.0177,"signer":"me","key":"floor"},{"type":"name","page":0,"x":0.5049,"y":0.2418,"w":0.2222,"h":0.0177,"signer":"me","key":"measurer"},{"type":"date","page":0,"x":0.0425,"y":0.2418,"w":0.2206,"h":0.0177,"signer":"me","key":"measureDate"},{"type":"text","page":0,"x":0.0654,"y":0.3725,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeFront"},{"type":"text","page":0,"x":0.0654,"y":0.4154,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeBack"},{"type":"checkbox","page":0,"x":0.9477,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.8566,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.7243,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.5966,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3553,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2398,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4097,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3704,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4097,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3704,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3311,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3907,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3514,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3121,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"text","page":0,"x":0.0425,"y":0.75,"w":0.9412,"h":0.0227,"signer":"me","key":"notes"},{"type":"signature","page":0,"x":0.6585,"y":0.8662,"w":0.299,"h":0.053,"signer":"c1","key":"clientSig"},{"type":"signature","page":0,"x":0.3513,"y":0.8662,"w":0.2974,"h":0.053,"signer":"me","key":"measurerSig"},{"type":"date","page":0,"x":0.0425,"y":0.8737,"w":0.299,"h":0.0152,"signer":"c1","key":"signDate"}];
+const FORM_ID = 'measure-form', FORM_V = 2;
+const FORM_FIELDS = [{"type":"text","page":0,"x":0.5049,"y":0.1787,"w":0.2222,"h":0.0177,"signer":"me","key":"orderNo","label":"מס׳ הזמנה"},{"type":"text","page":0,"x":0.0425,"y":0.1787,"w":0.2206,"h":0.0177,"signer":"me","key":"clientName","label":"שם לקוח"},{"type":"text","page":0,"x":0.5049,"y":0.2001,"w":0.2222,"h":0.0164,"signer":"me","key":"address","label":"כתובת"},{"type":"text","page":0,"x":0.0425,"y":0.2001,"w":0.2206,"h":0.0164,"signer":"me","key":"phone","label":"טלפון"},{"type":"text","page":0,"x":0.5049,"y":0.2203,"w":0.2222,"h":0.0177,"signer":"me","key":"apt","label":"דירה"},{"type":"text","page":0,"x":0.0425,"y":0.2203,"w":0.2206,"h":0.0177,"signer":"me","key":"floor","label":"קומה"},{"type":"name","page":0,"x":0.5049,"y":0.2418,"w":0.2222,"h":0.0177,"signer":"me","key":"measurer","label":"מודד"},{"type":"date","page":0,"x":0.0425,"y":0.2418,"w":0.2206,"h":0.0177,"signer":"me","key":"measureDate","label":"תאריך מדידה"},{"type":"text","page":0,"x":0.0654,"y":0.3725,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeFront","label":"סוג קנט קדמי"},{"type":"text","page":0,"x":0.0654,"y":0.4154,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeBack","label":"סוג קנט אחורי"},{"type":"checkbox","page":0,"x":0.9477,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me","label":"מעלית","group":"תנאי גישה"},{"type":"checkbox","page":0,"x":0.8566,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me","label":"ללא מעלית","group":"תנאי גישה"},{"type":"checkbox","page":0,"x":0.7243,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me","label":"נדרש מנוף","group":"תנאי גישה"},{"type":"checkbox","page":0,"x":0.5966,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me","label":"גישה חריגה","group":"תנאי גישה"},{"type":"checkbox","page":0,"x":0.4879,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me","label":"גובה תקרה","group":"חיפוי"},{"type":"checkbox","page":0,"x":0.3553,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me","label":"גובה חלון","group":"חיפוי"},{"type":"checkbox","page":0,"x":0.2398,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me","label":"גובה קלפה","group":"חיפוי"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me","label":"מרכז תא לפי נגרות","group":"מיקום כיור במשטח"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me","label":"ימין","group":"מיקום כיור במשטח"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me","label":"שמאל","group":"מיקום כיור במשטח"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me","label":"מרכז תא לפי נגרות","group":"מיקום כיריים במשטח"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me","label":"ימין","group":"מיקום כיריים במשטח"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me","label":"שמאל","group":"מיקום כיריים במשטח"},{"type":"checkbox","page":0,"x":0.4883,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me","label":"2","group":"עובי שיש"},{"type":"checkbox","page":0,"x":0.449,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me","label":"3","group":"עובי שיש"},{"type":"checkbox","page":0,"x":0.4097,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me","label":"4","group":"עובי שיש"},{"type":"checkbox","page":0,"x":0.3704,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me","label":"אחר","group":"עובי שיש"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me","label":"2","group":"בליטה מגוף ארון"},{"type":"checkbox","page":0,"x":0.449,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me","label":"3","group":"בליטה מגוף ארון"},{"type":"checkbox","page":0,"x":0.4097,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me","label":"4","group":"בליטה מגוף ארון"},{"type":"checkbox","page":0,"x":0.3704,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me","label":"5","group":"בליטה מגוף ארון"},{"type":"checkbox","page":0,"x":0.3311,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me","label":"מצב קיים","group":"בליטה מגוף ארון"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me","label":"0","group":"בליטה מדלת"},{"type":"checkbox","page":0,"x":0.449,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me","label":"0.5","group":"בליטה מדלת"},{"type":"checkbox","page":0,"x":0.3907,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me","label":"1","group":"בליטה מדלת"},{"type":"checkbox","page":0,"x":0.3514,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me","label":"2","group":"בליטה מדלת"},{"type":"checkbox","page":0,"x":0.3121,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me","label":"3","group":"בליטה מדלת"},{"type":"text","page":0,"x":0.0425,"y":0.75,"w":0.9412,"h":0.0227,"signer":"me","key":"notes","label":"הערות מודד"},{"type":"signature","page":0,"x":0.6585,"y":0.8662,"w":0.299,"h":0.053,"signer":"c1","key":"clientSig","label":"חתימת לקוח"},{"type":"signature","page":0,"x":0.3513,"y":0.8662,"w":0.2974,"h":0.053,"signer":"me","key":"measurerSig","label":"חתימת מודד"},{"type":"date","page":0,"x":0.0425,"y":0.8737,"w":0.299,"h":0.0152,"signer":"c1","key":"signDate","label":"תאריך"}];
 async function ensureForm(){
   for (const t of Store.all('templates')) if (t.id !== FORM_ID) await Store.del('templates', t.id);
   for (const d of Store.all('docs')) if (d.sample) await Store.del('docs', d.id);
