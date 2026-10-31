@@ -1,0 +1,1145 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2343c9"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>חותם</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Frank+Ruhl+Libre:wght@700;900&family=Amatic+SC:wght@700&family=Dancing+Script:wght@600&display=swap">
+<style>
+/* Layout: one-screen mobile app — sticky header, scrolling sheet of paper pages, fixed tool tray at the bottom */
+:root{
+  --paper:#f3f4f8; --surface:#ffffff; --sunk:#e9ecf3; --ink:#141b33; --muted:#5b6482; --line:#d9deea;
+  --accent:#2343c9; --accent-soft:#e4e9ff; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#dcf3e3; --warn:#a15c00; --warn-soft:#fbefd6; --bad:#b4232f; --bad-soft:#fde3e5;
+  --draft:#5b6482; --draft-soft:#e7e9f0; --shadow:0 1px 2px rgba(20,27,51,.06),0 8px 24px rgba(20,27,51,.08);
+  --page-shadow:0 1px 3px rgba(20,27,51,.12),0 6px 18px rgba(20,27,51,.10);
+  --f-body:"Rubik",system-ui,"Segoe UI",Arial,sans-serif; --f-display:"Frank Ruhl Libre","David",Georgia,serif;
+  --s1:#2343c9; --s2:#8a2be2; --s3:#0f8a7e; --s4:#d4561c; --s5:#c2185b;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0e1220; --surface:#171c2e; --sunk:#1f2539; --ink:#e8ebf6; --muted:#9aa3bf; --line:#2b3250;
+  --accent:#7e95ff; --accent-soft:#232c55; --on-accent:#0e1220;
+  --ok:#5fd18a; --ok-soft:#173526; --warn:#f0b54d; --warn-soft:#3a2c12; --bad:#ff7b86; --bad-soft:#3d1a20;
+  --draft:#9aa3bf; --draft-soft:#262c42; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  --page-shadow:0 2px 10px rgba(0,0,0,.5);
+  --s1:#7e95ff; --s2:#c08cff; --s3:#4fd1c1; --s4:#ff9a62; --s5:#ff77ac; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#0e1220; --surface:#171c2e; --sunk:#1f2539; --ink:#e8ebf6; --muted:#9aa3bf; --line:#2b3250;
+  --accent:#7e95ff; --accent-soft:#232c55; --on-accent:#0e1220;
+  --ok:#5fd18a; --ok-soft:#173526; --warn:#f0b54d; --warn-soft:#3a2c12; --bad:#ff7b86; --bad-soft:#3d1a20;
+  --draft:#9aa3bf; --draft-soft:#262c42; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  --page-shadow:0 2px 10px rgba(0,0,0,.5);
+  --s1:#7e95ff; --s2:#c08cff; --s3:#4fd1c1; --s4:#ff9a62; --s5:#ff77ac; color-scheme:dark }
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{min-height:100%;display:flex;flex-direction:column}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));width:100%;max-width:880px;margin-inline:auto}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:10px;padding-block:10px;min-height:56px}
+.brand{font-family:var(--f-display);font-weight:900;font-size:26px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.seal{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:16px;font-family:var(--f-display)}
+.top h1{font-size:17px;font-weight:500;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.icon-btn{border:0;background:transparent;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none}
+.icon-btn:hover{background:var(--sunk)}
+.icon-btn svg{width:22px;height:22px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 16px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.btn.danger{color:var(--bad);border-color:var(--bad-soft)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:18px;height:18px}
+
+/* home */
+main{flex:1}
+.hero{padding-block:22px 6px}
+.hero h2{font-family:var(--f-display);font-size:30px;line-height:1.15;margin:0 0 4px;text-wrap:balance}
+.hero p{margin:0;color:var(--muted)}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding-block:16px}
+.action{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:16px;text-align:start;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow)}
+.action .ic{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.action .ic svg{width:24px;height:24px}
+.action b{display:block;font-size:16px}
+.action span{color:var(--muted);font-size:13.5px}
+.section-h{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
+.section-h h3{margin:0;font-size:13px;letter-spacing:.06em;color:var(--muted);font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13.5px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;margin-bottom:10px}
+.list{display:flex;flex-direction:column;gap:8px;padding-bottom:28px}
+.item{display:flex;gap:12px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:10px;text-align:start;width:100%}
+.thumb{width:46px;height:60px;border-radius:6px;background:#fff;border:1px solid var(--line);flex:none;object-fit:cover;object-position:top}
+.item .meta{flex:1;min-width:0}
+.item .name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:12px;border-radius:999px;padding:3px 10px;font-weight:500;flex:none}
+.pill.draft{background:var(--draft-soft);color:var(--draft)}
+.pill.pending{background:var(--warn-soft);color:var(--warn)}
+.pill.completed{background:var(--ok-soft);color:var(--ok)}
+.pill.sample{background:var(--accent-soft);color:var(--accent)}
+.empty{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted)}
+.mysig{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px}
+.mysig .box{width:120px;height:52px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;flex:none;overflow:hidden}
+.mysig .box img{max-height:46px;max-width:110px}
+.ink-on-dark{filter:none}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sig-preview{filter:invert(1) hue-rotate(180deg)} }
+:root[data-theme="dark"] .sig-preview{filter:invert(1) hue-rotate(180deg)}
+
+/* editor */
+.pages{display:flex;flex-direction:column;align-items:center;gap:16px;padding-block:16px 220px}
+.page{position:relative;width:100%;background:#fff;box-shadow:var(--page-shadow);border-radius:2px}
+.page canvas{display:block;width:100%;height:auto;border-radius:2px}
+.page .pno{position:absolute;bottom:-20px;inset-inline-start:0;font-size:12px;color:var(--muted)}
+.overlay{position:absolute;inset:0}
+.overlay.placing{cursor:crosshair;outline:2px dashed var(--accent);outline-offset:3px}
+.field{position:absolute;border:1.5px dashed var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);border-radius:4px;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--c);font-size:11px;font-weight:500;overflow:visible}
+.field.filled{background:transparent;border-color:transparent}
+.field.filled.mine-edit{border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.field .ph{display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;padding:0 4px;max-width:100%;text-overflow:ellipsis}
+.field img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.field .tv{color:#111;font-size:var(--fs,12px);white-space:nowrap;overflow:hidden;width:100%;padding:0 3px;text-align:right;line-height:1}
+.field.sel{border-style:solid;border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+.field .x,.field .rs{position:absolute;width:26px;height:26px;border-radius:50%;background:var(--c);color:#fff;border:2px solid #fff;display:grid;place-items:center;font-size:14px;line-height:1;padding:0}
+.field .x{top:-14px;right:-14px}
+.field .rs{bottom:-14px;left:-14px;cursor:nwse-resize}
+.field.dim{opacity:.5}
+.field.todo{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 22%,transparent)}}
+@media (prefers-reduced-motion: reduce){.field.todo{animation:none}}
+.tray{position:fixed;bottom:0;left:0;right:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 20px rgba(20,27,51,.08)}
+.tray .wrap{padding-block:10px;display:flex;flex-direction:column;gap:8px}
+.tools{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tool{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:68px;font-size:12px}
+.tool svg{width:22px;height:22px}
+.tool[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.signers{display:flex;gap:6px;overflow-x:auto;align-items:center;scrollbar-width:none}
+.signer{flex:none;border:1.5px solid var(--c);color:var(--c);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.signer i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.signer[aria-pressed="true"]{background:var(--c);color:#fff}
+.signer[aria-pressed="true"] i{background:#fff}
+.hint{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.progress{height:4px;border-radius:4px;background:var(--sunk);overflow:hidden;flex:1;min-width:80px}
+.progress b{display:block;height:100%;background:var(--accent);transition:width .3s}
+.consent{display:flex;gap:8px;align-items:flex-start;font-size:13.5px}
+.consent input{width:20px;height:20px;margin-top:1px;accent-color:var(--accent)}
+
+/* handoff + done */
+.center{min-height:calc(100vh - 140px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-block:30px}
+.big-seal{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-size:44px;font-weight:900;color:#fff;background:var(--c,var(--accent));box-shadow:0 0 0 8px color-mix(in srgb,var(--c,var(--accent)) 18%,transparent)}
+.center h2{font-family:var(--f-display);font-size:30px;margin:0;text-wrap:balance}
+.center p{color:var(--muted);margin:0;max-width:40ch}
+.hash{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--muted);word-break:break-all;direction:ltr;max-width:100%;background:var(--sunk);border-radius:8px;padding:8px 10px}
+.stack{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px}
+
+/* audit */
+.audit{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:6px 14px;margin-block:8px 30px}
+.audit .ev{display:flex;gap:12px;padding-block:9px;border-bottom:1px solid var(--line);font-size:14px}
+.audit .ev:last-child{border-bottom:0}
+.audit time{color:var(--muted);font-variant-numeric:tabular-nums;flex:none;font-size:13px;min-width:108px}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,14,28,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;max-height:92vh;overflow:auto}
+@media (min-width:640px){.modal{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{margin:0;font-size:18px}
+.tabs{display:flex;background:var(--sunk);border-radius:12px;padding:3px;gap:3px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font-size:14px}
+.tabs button[aria-selected="true"]{background:var(--surface);box-shadow:var(--shadow);font-weight:500}
+.padbox{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;height:200px;overflow:hidden}
+.padbox canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.padbox .line{position:absolute;left:24px;right:24px;bottom:46px;border-bottom:1.5px solid #c9cfdd;pointer-events:none}
+.padbox .lbl{position:absolute;right:24px;bottom:22px;font-size:12px;color:#8a92ab;pointer-events:none}
+.colors{display:flex;gap:8px;align-items:center}
+.dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line)}
+.dot[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+.fonts{display:grid;grid-template-columns:1fr;gap:6px}
+.fontopt{border:1px solid var(--line);border-radius:12px;background:#fff;color:#111;height:62px;font-size:34px;overflow:hidden;white-space:nowrap}
+.fontopt[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.inp{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px}
+.sheet .foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.sheet .foot .btn{flex:1}
+.saved-pick{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--sunk);width:100%;text-align:start}
+.saved-pick img{height:40px;max-width:140px;background:#fff;border-radius:6px;padding:2px 6px}
+.upl{border:1.5px dashed var(--line);border-radius:12px;height:200px;display:grid;place-items:center;color:var(--muted);text-align:center;background:#fff;position:relative;overflow:hidden}
+.upl img{max-width:90%;max-height:170px}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.signer-row{display:flex;gap:8px;align-items:center}
+.signer-row .sw{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none}
+.signer-row input{flex:1;min-width:0}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding-bottom:30px}
+.tpl{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:10px;text-align:start;display:flex;flex-direction:column;gap:8px}
+.tpl img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;border-radius:6px;border:1px solid var(--line);background:#fff;max-width:100%}
+.tpl small{color:var(--muted)}
+</style>
+
+<div id="app" dir="rtl" lang="he">
+  <!-- HOME -->
+  <section id="s-home">
+    <header class="top"><div class="wrap">
+      <div class="brand"><span class="seal">ח</span>חותם</div>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="btn-templates" aria-label="תבניות" title="תבניות"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></button>
+    </div></header>
+    <main class="wrap">
+      <div class="hero">
+        <h2>חתימה על מסמכים, ישר מהטלפון</h2>
+        <p>מעלים PDF או תמונה, מסמנים איפה חותמים, וחותמים. בסוף מקבלים PDF חתום עם יומן ביקורת.</p>
+      </div>
+      <div class="actions">
+        <button class="action" id="act-self"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c3-1 4-8 6-8s0 7 2 7 2-4 4-4 1 3 3 3 3-1 3-1"/><path d="M3 21h18"/></svg></span><span><b>לחתום בעצמי</b><span>אני היחיד שחותם על המסמך</span></span></button>
+        <button class="action" id="act-multi"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.4 1.4 5 4.5"/></svg></span><span><b>חתימה פרונטלית</b><span>כמה אנשים חותמים על אותו מכשיר, אחד אחרי השני</span></span></button>
+        <button class="action" id="act-tpl"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></span><span><b>מתבנית</b><span>הזמנת עבודה, הצעת מחיר, טופס מסירה</span></span></button>
+        <button class="action" id="act-dbx"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 3l5 3.2L7 9.4 2 6.2zM17 3l5 3.2-5 3.2-5-3.2zM2 12.6l5-3.2 5 3.2-5 3.2zM22 12.6l-5-3.2-5 3.2 5 3.2zM7 17l5 3.2 5-3.2-5-3.2z"/></svg></span><span><b>מדרופבוקס</b><span>לבחור מסמך מהדרופבוקס ולחתום עליו</span></span></button>
+      </div>
+
+      <div class="section-h"><h3>דרופבוקס</h3></div>
+      <div class="mysig" id="dbx-card"></div>
+
+      <div class="section-h"><h3>החתימה שלי</h3></div>
+      <div class="mysig">
+        <div class="box" id="mysig-box"><span class="hint">אין חתימה שמורה</span></div>
+        <div style="flex:1;min-width:0"><div id="myname-lbl" style="font-weight:500">השם שלי</div><div class="hint">נשמרת במכשיר הזה בלבד</div></div>
+        <button class="btn sm" id="btn-mysig">עריכה</button>
+      </div>
+
+      <div class="section-h"><h3>המסמכים שלי</h3><span class="spacer"></span>
+        <div class="chips" id="filters">
+          <button class="chip" data-f="all" aria-pressed="true">הכל</button>
+          <button class="chip" data-f="draft" aria-pressed="false">טיוטה</button>
+          <button class="chip" data-f="pending" aria-pressed="false">בחתימה</button>
+          <button class="chip" data-f="completed" aria-pressed="false">חתום</button>
+          <button class="chip" data-f="dropbox" aria-pressed="false">בדרופבוקס</button>
+        </div>
+      </div>
+      <input class="search" id="q" type="search" placeholder="חיפוש לפי שם מסמך או חותם">
+      <div class="list" id="doclist"><div class="loading">טוען…</div></div>
+    </main>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section id="s-templates" hidden>
+    <header class="top"><div class="wrap">
+      <button class="icon-btn back" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h1>תבניות</h1>
+    </div></header>
+    <main class="wrap">
+      <p class="hint" style="margin:14px 0">תבנית שומרת את המסמך ואת מיקום השדות. שומרים תבנית ממסך העריכה דרך "שמור כתבנית".</p>
+      <div class="tpl-grid" id="tpllist"></div>
+    </main>
+  </section>
+
+  <!-- EDITOR / SIGN -->
+  <section id="s-editor" hidden>
+    <header class="top"><div class="wrap">
+      <button class="icon-btn back" id="ed-back" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h1 id="ed-title">מסמך</h1>
+      <button class="icon-btn" id="ed-rename" aria-label="שינוי שם"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
+      <button class="icon-btn" id="ed-savetpl" aria-label="שמור כתבנית" title="שמור כתבנית"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 3v5h6"/><path d="M9 14h6M9 17h4"/></svg></button>
+    </div></header>
+    <main class="wrap"><div class="pages" id="pages"></div></main>
+    <div class="tray" id="tray"><div class="wrap" id="tray-in"></div></div>
+  </section>
+
+  <!-- HANDOFF -->
+  <section id="s-handoff" hidden>
+    <main class="wrap"><div class="center" id="handoff"></div></main>
+  </section>
+
+  <!-- DONE / VIEW -->
+  <section id="s-view" hidden>
+    <header class="top"><div class="wrap">
+      <button class="icon-btn back" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h1 id="v-title">מסמך</h1>
+      <span class="pill completed">חתום</span>
+    </div></header>
+    <main class="wrap" id="v-body"></main>
+  </section>
+</div>
+
+<input type="file" id="file-in" accept="application/pdf,image/*" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SIGNER_COLORS = ['--s1','--s2','--s3','--s4','--s5'];
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const FIELD_TYPES = {
+  signature:{label:'חתימה', w:.28, h:.085, icon:'<path d="M3 17c3-1 4-8 6-8s0 7 2 7 2-4 4-4 1 3 3 3 3-1 3-1"/><path d="M3 21h18"/>'},
+  initials:{label:'ראשי תיבות', w:.12, h:.07, icon:'<path d="M5 18V6l5 12V6"/><path d="M14 18h2.5a3 3 0 0 0 0-6H14v6zM14 12V6h2a3 3 0 0 1 0 6"/>'},
+  name:{label:'שם מלא', w:.26, h:.045, icon:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/>'},
+  date:{label:'תאריך', w:.17, h:.045, icon:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'},
+  text:{label:'טקסט', w:.3, h:.045, icon:'<path d="M5 6h14M12 6v13M9 19h6"/>'},
+  checkbox:{label:'תיבת סימון', w:.045, h:.045, icon:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>'}
+};
+const ico = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+/* ---------- storage (IndexedDB with in-memory fallback) ---------- */
+const Store = {
+  db:null, mem:{docs:new Map(), templates:new Map(), kv:new Map()},
+  async open(){
+    try{
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open('chotem', 1);
+        r.onupgradeneeded = () => { const d = r.result; ['docs','templates','kv'].forEach(n => d.objectStoreNames.contains(n) || d.createObjectStore(n, {keyPath:'id'})); };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+        setTimeout(() => rej(new Error('timeout')), 4000);
+      });
+      for (const s of ['docs','templates','kv']) {
+        const rows = await new Promise((res, rej) => { const q = this.db.transaction(s).objectStore(s).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+        rows.forEach(r => this.mem[s].set(r.id, r));
+      }
+    }catch(e){ this.db = null; }
+  },
+  all(s){ return [...this.mem[s].values()]; },
+  get(s, id){ return this.mem[s].get(id); },
+  async put(s, obj){
+    this.mem[s].set(obj.id, obj);
+    if (!this.db) return;
+    try{ await new Promise((res, rej) => { const t = this.db.transaction(s, 'readwrite'); t.objectStore(s).put(obj); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+    catch(e){ toast('לא הצלחתי לשמור במכשיר. ייתכן שאין מספיק מקום.'); }
+  },
+  async del(s, id){
+    this.mem[s].delete(id);
+    if (!this.db) return;
+    try{ await new Promise((res, rej) => { const t = this.db.transaction(s, 'readwrite'); t.objectStore(s).delete(id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }catch(e){}
+  }
+};
+const me = () => Store.get('kv', 'me') || {id:'me', name:'', sig:'', initials:''};
+
+/* ---------- helpers ---------- */
+let toastT;
+function toast(msg){ let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+const pad2 = n => String(n).padStart(2, '0');
+const fmtDate = t => { const d = new Date(t); return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`; };
+const fmtDT = t => { const d = new Date(t); return `${fmtDate(t)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+async function sha256(buf){ try{ const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,'0')).join(''); }catch(e){ return '—'; } }
+const copyBuf = b => b instanceof ArrayBuffer ? b.slice(0) : new Uint8Array(b).buffer.slice(0);
+function deviceLabel(){ const u = navigator.userAgent; const os = /Android/i.test(u) ? 'Android' : /iPhone|iPad/i.test(u) ? 'iOS' : /Windows/i.test(u) ? 'Windows' : /Mac/i.test(u) ? 'macOS' : /Linux/i.test(u) ? 'Linux' : 'מכשיר'; const br = /Edg\//.test(u) ? 'Edge' : /Chrome\//.test(u) ? 'Chrome' : /Firefox\//.test(u) ? 'Firefox' : /Safari\//.test(u) ? 'Safari' : 'דפדפן'; return `${os} · ${br}`; }
+function initialsOf(name){ const p = String(name||'').trim().split(/\s+/).filter(Boolean); if(!p.length) return ''; return p.length === 1 ? p[0][0] : p[0][0] + '.' + p[p.length-1][0]; }
+function show(id){ $$('#app > section').forEach(s => s.hidden = s.id !== id); window.scrollTo(0, 0); }
+
+/* trim transparent canvas edges */
+function trimCanvas(c, padding=8){
+  const ctx = c.getContext('2d'); const {width:w, height:h} = c; const d = ctx.getImageData(0,0,w,h).data;
+  let x0=w, y0=h, x1=-1, y1=-1;
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) if (d[(y*w+x)*4+3] > 8){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  if (x1 < 0) return null;
+  x0 = Math.max(0, x0-padding); y0 = Math.max(0, y0-padding); x1 = Math.min(w-1, x1+padding); y1 = Math.min(h-1, y1+padding);
+  const o = document.createElement('canvas'); o.width = x1-x0+1; o.height = y1-y0+1;
+  o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+
+/* ---------- modals ---------- */
+function modal(html, onMount){
+  return new Promise(resolve => {
+    const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    document.body.appendChild(m);
+    const close = v => { m.remove(); resolve(v); };
+    m.addEventListener('click', e => { if (e.target === m) close(null); });
+    onMount(m.firstElementChild, close);
+  });
+}
+function askText(title, value='', {placeholder='', ok='אישור', type='text'}={}){
+  return modal(`<h3>${esc(title)}</h3><form id="f"><input class="inp" id="ask-in" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off"><div class="foot" style="margin-top:12px"><button type="button" class="btn" data-x>ביטול</button><button class="btn primary">${esc(ok)}</button></div></form>`, (s, close) => {
+    const i = $('#ask-in', s); setTimeout(() => { i.focus(); i.select(); }, 50);
+    $('[data-x]', s).onclick = () => close(null);
+    $('#f', s).onsubmit = e => { e.preventDefault(); close(i.value.trim()); };
+  });
+}
+function confirmBox(title, text, ok='אישור', danger=false){
+  return modal(`<h3>${esc(title)}</h3><p style="margin:0;color:var(--muted)">${esc(text)}</p><div class="foot"><button class="btn" data-x>ביטול</button><button class="btn ${danger?'danger':'primary'}" data-ok>${esc(ok)}</button></div>`, (s, close) => {
+    $('[data-x]', s).onclick = () => close(false); $('[data-ok]', s).onclick = () => close(true);
+  });
+}
+
+/* ---------- signature pad ---------- */
+function sigPad({kind='signature', name='', allowSaved=false}={}){
+  const isInit = kind === 'initials';
+  const saved = allowSaved ? (isInit ? me().initials : me().sig) : '';
+  const fonts = [['Amatic SC', 700], ['Dancing Script', 600], ['Frank Ruhl Libre', 700]];
+  return modal(`
+    <div class="row"><h3 style="flex:1">${isInit ? 'ראשי תיבות' : 'חתימה'}${name ? ' · ' + esc(name) : ''}</h3></div>
+    ${saved ? `<button class="saved-pick" data-saved><img src="${saved}" alt=""><span><b>להשתמש בשמורה</b><br><span class="hint">הקשה אחת וזהו</span></span></button>` : ''}
+    <div class="tabs" role="tablist"><button role="tab" data-t="draw" aria-selected="true">ציור</button><button role="tab" data-t="type" aria-selected="false">הקלדה</button><button role="tab" data-t="upload" aria-selected="false">תמונה</button></div>
+    <div data-p="draw"><div class="padbox"><canvas id="padc"></canvas><div class="line"></div><div class="lbl">${isInit ? 'ראשי תיבות כאן' : 'חתמו כאן'}</div></div></div>
+    <div data-p="type" hidden><input class="inp" id="typed" value="${esc(isInit ? initialsOf(name) : name)}" placeholder="${isInit ? 'למשל ד.ל' : 'השם המלא'}"><div class="fonts" style="margin-top:8px">${fonts.map((f,i) => `<button class="fontopt" data-font="${i}" aria-pressed="${i===0}" style="font-family:'${f[0]}',cursive;font-weight:${f[1]}"></button>`).join('')}</div></div>
+    <div data-p="upload" hidden><label class="upl" for="sig-file" id="upl"><span>צלמו או בחרו תמונה של חתימה על דף לבן.<br>הרקע הלבן יוסר אוטומטית.</span></label><input type="file" id="sig-file" accept="image/*" hidden></div>
+    <div class="row"><div class="colors"><button class="dot" data-col="#111827" style="background:#111827" aria-pressed="true" aria-label="שחור"></button><button class="dot" data-col="#1d3fbf" style="background:#1d3fbf" aria-pressed="false" aria-label="כחול"></button></div><span class="spacer"></span><button class="btn sm" data-clear>ניקוי</button></div>
+    ${allowSaved ? `<label class="check"><input type="checkbox" id="keep" checked> לשמור לפעם הבאה</label>` : ''}
+    <div class="foot"><button class="btn" data-x>ביטול</button><button class="btn primary" data-ok>אישור</button></div>`, (s, close) => {
+    let tab = 'draw', color = '#111827', fontI = 0, uploaded = null, dirty = false;
+    const c = $('#padc', s), ctx = c.getContext('2d'); const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const strokes = [];
+    const fit = () => { const r = c.getBoundingClientRect(); c.width = r.width * dpr; c.height = r.height * dpr; redraw(); };
+    function redraw(){ ctx.clearRect(0,0,c.width,c.height); for (const st of strokes) drawStroke(st); }
+    function drawStroke(st){
+      ctx.strokeStyle = ctx.fillStyle = color; ctx.lineCap = ctx.lineJoin = 'round';
+      const p = st; if (p.length === 1){ ctx.beginPath(); ctx.arc(p[0].x, p[0].y, p[0].w/2, 0, 7); ctx.fill(); return; }
+      for (let i = 1; i < p.length; i++){
+        const a = p[i-1], b = p[i], m0 = i > 1 ? {x:(p[i-2].x+a.x)/2, y:(p[i-2].y+a.y)/2} : a, m1 = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+        ctx.beginPath(); ctx.lineWidth = (a.w + b.w) / 2; ctx.moveTo(m0.x, m0.y); ctx.quadraticCurveTo(a.x, a.y, m1.x, m1.y); ctx.stroke();
+      }
+    }
+    let cur = null, last = null;
+    c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); const r = c.getBoundingClientRect(); last = {x:(e.clientX-r.left)*dpr, y:(e.clientY-r.top)*dpr, t:e.timeStamp, w:3*dpr}; cur = [last]; strokes.push(cur); dirty = true; redraw(); });
+    c.addEventListener('pointermove', e => {
+      if (!cur) return; const r = c.getBoundingClientRect();
+      const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      for (const ev of evs){
+        const x = (ev.clientX-r.left)*dpr, y = (ev.clientY-r.top)*dpr; const dist = Math.hypot(x-last.x, y-last.y); if (dist < 1.5*dpr) continue;
+        const v = dist / Math.max(1, ev.timeStamp - last.t) / dpr; const target = Math.max(1.4, Math.min(4.2, 4.4 - v*1.6)) * dpr;
+        last = {x, y, t:ev.timeStamp, w: last.w*0.6 + target*0.4}; cur.push(last);
+      }
+      redraw();
+    });
+    const end = () => { cur = null; }; c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+    requestAnimationFrame(fit);
+
+    const typed = $('#typed', s);
+    const paintFontOpts = () => $$('.fontopt', s).forEach(b => b.textContent = typed.value || (isInit ? 'ד.ל' : 'החתימה שלי'));
+    typed.addEventListener('input', paintFontOpts); paintFontOpts();
+    $$('.fontopt', s).forEach(b => b.onclick = () => { fontI = +b.dataset.font; $$('.fontopt', s).forEach(x => x.setAttribute('aria-pressed', x === b)); });
+    $$('.tabs button', s).forEach(b => b.onclick = () => { tab = b.dataset.t; $$('.tabs button', s).forEach(x => x.setAttribute('aria-selected', x === b)); $$('[data-p]', s).forEach(p => p.hidden = p.dataset.p !== tab); if (tab === 'draw') requestAnimationFrame(fit); if (tab==='type') typed.focus(); });
+    $$('.dot', s).forEach(b => b.onclick = () => { color = b.dataset.col; $$('.dot', s).forEach(x => x.setAttribute('aria-pressed', x === b)); redraw(); if (uploaded) processUpload(uploaded.src); });
+    $('[data-clear]', s).onclick = () => { strokes.length = 0; dirty = false; redraw(); typed.value = ''; paintFontOpts(); uploaded = null; $('#upl', s).innerHTML = '<span>צלמו או בחרו תמונה של חתימה על דף לבן.</span>'; };
+    $('[data-x]', s).onclick = () => close(null);
+    const savedBtn = $('[data-saved]', s); if (savedBtn) savedBtn.onclick = () => close(saved);
+
+    let uploadedOut = null;
+    function processUpload(src){
+      const img = new Image(); img.onload = () => {
+        const sc = Math.min(1, 1400 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = img.width*sc; cv.height = img.height*sc;
+        const x = cv.getContext('2d'); x.drawImage(img, 0, 0, cv.width, cv.height); const id = x.getImageData(0,0,cv.width,cv.height), d = id.data;
+        const rgb = [parseInt(color.slice(1,3),16), parseInt(color.slice(3,5),16), parseInt(color.slice(5,7),16)];
+        for (let i = 0; i < d.length; i += 4){ const l = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]; const a = l > 185 ? 0 : l < 110 ? 255 : Math.round((185-l)/75*255); d[i]=rgb[0]; d[i+1]=rgb[1]; d[i+2]=rgb[2]; d[i+3]=Math.min(d[i+3], a); }
+        x.putImageData(id, 0, 0); const t = trimCanvas(cv, 6); uploadedOut = t ? t.toDataURL('image/png') : null;
+        $('#upl', s).innerHTML = uploadedOut ? `<img src="${uploadedOut}" alt="החתימה מהתמונה">` : '<span>לא זיהיתי חתימה בתמונה. נסו צילום עם יותר ניגודיות.</span>';
+      }; img.src = src; uploaded = img;
+    }
+    $('#sig-file', s).onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => processUpload(r.result); r.readAsDataURL(f); };
+
+    $('[data-ok]', s).onclick = async () => {
+      let out = null;
+      if (tab === 'draw'){ if (!dirty){ toast('עדיין לא חתמתם'); return; } const t = trimCanvas(c, 10); out = t && t.toDataURL('image/png'); }
+      else if (tab === 'type'){
+        const txt = typed.value.trim(); if (!txt){ toast('הקלידו שם'); return; }
+        const [fam, wt] = fonts[fontI]; try{ await document.fonts.load(`${wt} 120px "${fam}"`, txt); }catch(e){}
+        const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 300; const x = cv.getContext('2d');
+        x.font = `${wt} ${fam === 'Amatic SC' ? 170 : 130}px "${fam}", cursive`; x.fillStyle = color; x.textBaseline = 'middle'; x.direction = 'rtl'; x.textAlign = 'center'; x.fillText(txt, 800, 155);
+        const t = trimCanvas(cv, 10); out = t && t.toDataURL('image/png');
+      } else { out = uploadedOut; if (!out){ toast('בחרו תמונה של חתימה'); return; } }
+      if (!out) return;
+      const keep = $('#keep', s);
+      if (keep && keep.checked){ const m = me(); if (isInit) m.initials = out; else m.sig = out; await Store.put('kv', m); }
+      close(out);
+    };
+  });
+}
+
+/* ---------- PDF creation from images & sample ---------- */
+async function imageToPdf(file){
+  const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+  const sc = Math.min(1, 2400 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+  const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,cv.width,cv.height); x.drawImage(img, 0, 0, cv.width, cv.height);
+  const jpg = await new Promise(r => cv.toBlob(b => b.arrayBuffer().then(r), 'image/jpeg', 0.9));
+  const pdf = await PDFLib.PDFDocument.create(); const e = await pdf.embedJpg(jpg);
+  const A4W = 595.28, A4H = 841.89; const portrait = cv.height >= cv.width; const pw = portrait ? A4W : A4H, ph = portrait ? A4H : A4W;
+  const s = Math.min(pw / cv.width, ph / cv.height); const w = cv.width*s, h = cv.height*s;
+  const page = pdf.addPage([pw, ph]); page.drawImage(e, {x:(pw-w)/2, y:(ph-h)/2, width:w, height:h});
+  return (await pdf.save()).buffer;
+}
+
+async function samplePdf(){
+  try{ await Promise.all(['700 40px Rubik','400 20px Rubik','900 40px "Frank Ruhl Libre"'].map(f => document.fonts.load(f, 'אבג'))); }catch(e){}
+  const W = 1240, H = 1754, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0,0,W,H); x.direction = 'rtl'; x.textAlign = 'right'; x.fillStyle = '#141b33';
+  const R = W - 110;
+  x.font = '900 54px "Frank Ruhl Libre", serif'; x.fillText('הזמנת עבודה — משטח שיש למטבח', R, 170);
+  x.font = '400 24px Rubik, sans-serif'; x.fillStyle = '#5b6482'; x.fillText('מסמך לדוגמה · מס׳ הזמנה 2026-1043', R, 215);
+  x.fillStyle = '#2343c9'; x.fillRect(110, 245, W-220, 4);
+  const rows = [['שם הלקוח','ישראל ישראלי'],['כתובת הפרויקט','הרצל 12, דירה 7, ראשון לציון'],['טלפון','050-0000000'],['דגם האבן','קוורץ לבן שיש, גימור מט'],['עובי','2 ס״מ, קנט ישר'],['חיתוכים','כיור אינטגרלי + כיריים אינדוקציה'],['מידות','לפי מדידת לייזר באתר, מצורפת כשרטוט DXF'],['מועד התקנה משוער','תוך 21 ימי עבודה ממועד החתימה']];
+  let y = 320; x.font = '400 28px Rubik, sans-serif';
+  for (const [k, v] of rows){ x.fillStyle = '#5b6482'; x.fillText(k, R, y); x.fillStyle = '#141b33'; x.font = '500 28px Rubik, sans-serif'; x.fillText(v, R - 300, y); x.font = '400 28px Rubik, sans-serif'; x.fillStyle = '#e3e6ef'; x.fillRect(110, y + 22, W-220, 2); y += 72; }
+  y += 30; x.fillStyle = '#141b33'; x.font = '700 32px Rubik, sans-serif'; x.fillText('תנאים', R, y); y += 50; x.font = '400 25px Rubik, sans-serif'; x.fillStyle = '#2b3350';
+  const terms = ['1. המחיר כולל הובלה, התקנה וסיליקון. פירוק משטח קיים אינו כלול.','2. גוון האבן עשוי להשתנות מעט בין לוחות, כמקובל באבן טבעית ומתועשת.','3. המידות נקבעות במדידה באתר בלבד; שינוי בארונות לאחר המדידה יחויב בנפרד.','4. מקדמה של 30% בחתימה, יתרת התשלום ביום ההתקנה.','5. אחריות לשנתיים על ההתקנה ועל הדבקות בחיבורים.'];
+  for (const t of terms){ x.fillText(t, R, y); y += 46; }
+  y = 1420; x.font = '400 24px Rubik, sans-serif'; x.fillStyle = '#5b6482';
+  x.fillText('חתימת הלקוח', R, y); x.fillText('תאריך', R - 560, y); x.fillText('חתימת נציג החברה', R, y + 170);
+  x.fillStyle = '#b8bfd2'; x.fillRect(R - 420, y + 110, 420, 2); x.fillRect(R - 800, y + 110, 240, 2); x.fillRect(R - 420, y + 280, 420, 2);
+  const png = await new Promise(r => cv.toBlob(b => b.arrayBuffer().then(r), 'image/png'));
+  const pdf = await PDFLib.PDFDocument.create(); const e = await pdf.embedPng(png); const p = pdf.addPage([595.28, 841.89]); p.drawImage(e, {x:0, y:0, width:595.28, height:841.89});
+  return (await pdf.save()).buffer;
+}
+
+async function thumbOf(buf){
+  try{ const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf))}).promise; const pg = await pdf.getPage(1); const vp = pg.getViewport({scale:1}); const s = 160 / vp.width; const v = pg.getViewport({scale:s});
+    const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; await pg.render({canvasContext:cv.getContext('2d'), viewport:v}).promise; const n = pdf.numPages; pdf.destroy(); return {thumb:cv.toDataURL('image/jpeg', .7), pages:n}; }
+  catch(e){ return {thumb:'', pages:0}; }
+}
+
+/* ---------- home ---------- */
+let filter = 'all';
+const STATUS = {draft:'טיוטה', pending:'בחתימה', completed:'חתום'};
+function renderHome(){
+  const m = me();
+  $('#mysig-box').innerHTML = m.sig ? `<img class="sig-preview" src="${m.sig}" alt="החתימה השמורה">` : '<span class="hint">אין חתימה שמורה</span>';
+  $('#myname-lbl').textContent = m.name || 'השם שלי לא הוגדר';
+  renderDbxCard();
+  if (filter === 'dropbox') return renderDbxList();
+  const q = $('#q').value.trim();
+  let docs = Store.all('docs').sort((a, b) => b.updated - a.updated);
+  if (filter !== 'all') docs = docs.filter(d => d.status === filter);
+  if (q) docs = docs.filter(d => d.name.includes(q) || d.signers.some(s => s.name.includes(q)));
+  const L = $('#doclist');
+  if (!docs.length){ L.innerHTML = `<div class="empty">${Store.all('docs').length ? 'אין מסמכים שמתאימים לסינון' : 'עוד אין מסמכים. התחילו מ"לחתום בעצמי" למעלה.'}</div>`; return; }
+  L.innerHTML = docs.map(d => `<button class="item" data-id="${d.id}">
+    ${d.thumb ? `<img class="thumb" src="${d.thumb}" alt="">` : '<span class="thumb"></span>'}
+    <span class="meta"><div class="name">${esc(d.name)}</div><div class="sub">${d.signers.map(s => esc(s.name)).join(' · ')} · ${fmtDate(d.updated)}</div></span>
+    ${d.dbx ? '<span class="pill sample" title="נשמר בדרופבוקס">☁</span>' : ''}${d.sample ? '<span class="pill sample">דוגמה</span>' : ''}<span class="pill ${d.status}">${STATUS[d.status]}</span></button>`).join('');
+  $$('.item', L).forEach(b => b.onclick = () => openDoc(Store.get('docs', b.dataset.id)));
+}
+$('#filters').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; filter = b.dataset.f; $$('.chip', $('#filters')).forEach(x => x.setAttribute('aria-pressed', x === b)); renderHome(); };
+$('#q').oninput = renderHome;
+$('#btn-mysig').onclick = async () => {
+  const m = me();
+  const n = await askText('השם המלא שלי', m.name, {placeholder:'למשל דוד לוי', ok:'הבא'}); if (n === null) return;
+  m.name = n; await Store.put('kv', m);
+  const sig = await sigPad({kind:'signature', name:n}); if (sig){ m.sig = sig; }
+  await Store.put('kv', m); renderHome();
+};
+$$('.back').forEach(b => b.addEventListener('click', () => { if (b.id !== 'ed-back') goHome(); }));
+function goHome(){ show('s-home'); renderHome(); }
+
+/* ---------- new document ---------- */
+function pickFile(){ return new Promise(res => { const i = $('#file-in'); i.value = ''; i.onchange = () => res(i.files[0] || null); i.click(); }); }
+async function newDoc(mode, file){
+  const f = file || await pickFile(); if (!f) return;
+  let buf; toast('מכין את המסמך…');
+  try{
+    if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) { buf = await f.arrayBuffer(); await PDFLib.PDFDocument.load(buf.slice(0), {ignoreEncryption:true}); }
+    else if (f.type.startsWith('image/')) buf = await imageToPdf(f);
+    else { toast('אפשר להעלות PDF או תמונה'); return; }
+  }catch(e){ toast('לא הצלחתי לפתוח את הקובץ. אם ה-PDF מוגן בסיסמה, הסירו אותה ונסו שוב.'); return; }
+  const m = me();
+  const signers = mode === 'self' ? [{id:'me', name:m.name || 'אני', color:SIGNER_COLORS[0]}]
+                                  : [{id:'me', name:m.name || 'אני', color:SIGNER_COLORS[0]}, {id:uid(), name:'לקוח', color:SIGNER_COLORS[1]}];
+  const {thumb, pages} = await thumbOf(buf);
+  const doc = {id:uid(), name:f.name.replace(/\.[^.]+$/, ''), mode, status:'draft', created:Date.now(), updated:Date.now(), pdf:buf, thumb, pages, signers, fields:[], audit:[{t:Date.now(), a:'המסמך נוצר', who:m.name || 'אני'}], hash: await sha256(buf)};
+  await Store.put('docs', doc); openEditor(doc);
+}
+$('#act-self').onclick = () => newDoc('self');
+$('#act-multi').onclick = () => newDoc('multi');
+$('#act-tpl').onclick = $('#btn-templates').onclick = () => { renderTemplates(); show('s-templates'); };
+
+/* ---------- templates ---------- */
+function renderTemplates(){
+  const T = Store.all('templates').sort((a, b) => b.created - a.created);
+  $('#tpllist').innerHTML = T.length ? T.map(t => `<div class="tpl"><img src="${t.thumb}" alt=""><b>${esc(t.name)}</b><small>${t.fields.length} שדות · ${t.signers.length} חותמים</small><div class="row"><button class="btn sm primary" data-use="${t.id}" style="flex:1">שימוש</button><button class="btn sm danger" data-del="${t.id}" aria-label="מחיקה">מחק</button></div></div>`).join('')
+    : '<div class="empty" style="grid-column:1/-1">אין תבניות עדיין. פתחו מסמך, סמנו שדות ולחצו על סמל השמירה בכותרת.</div>';
+  $$('[data-use]').forEach(b => b.onclick = () => useTemplate(Store.get('templates', b.dataset.use)));
+  $$('[data-del]').forEach(b => b.onclick = async () => { if (await confirmBox('למחוק את התבנית?', 'מסמכים שכבר נוצרו ממנה לא יימחקו.', 'מחיקה', true)){ await Store.del('templates', b.dataset.del); renderTemplates(); } });
+}
+async function useTemplate(t){
+  const m = me(); const map = {};
+  const signers = t.signers.map((s, i) => { const id = s.id === 'me' ? 'me' : uid(); map[s.id] = id; return {id, name: s.id === 'me' ? (m.name || s.name) : s.name, color:s.color}; });
+  const doc = {id:uid(), name:t.name, mode:signers.length > 1 ? 'multi' : 'self', status:'draft', created:Date.now(), updated:Date.now(), pdf:copyBuf(t.pdf), thumb:t.thumb, pages:t.pages, signers,
+    fields:t.fields.map(f => ({...f, id:uid(), signer:map[f.signer] || signers[0].id, value:'', filledAt:0})), audit:[{t:Date.now(), a:`נוצר מהתבנית "${t.name}"`, who:m.name || 'אני'}], hash:t.hash};
+  await Store.put('docs', doc); openEditor(doc);
+}
+async function saveTemplate(doc){
+  const n = await askText('שם התבנית', doc.name, {ok:'שמירה'}); if (!n) return;
+  await Store.put('templates', {id:uid(), name:n, created:Date.now(), pdf:copyBuf(doc.pdf), thumb:doc.thumb, pages:doc.pages, hash:doc.hash, signers:doc.signers.map(s => ({id:s.id, name:s.name, color:s.color})), fields:doc.fields.map(f => ({...f, value:'', filledAt:0}))});
+  toast('התבנית נשמרה');
+}
+
+/* ---------- page rendering ---------- */
+let pdfRenderToken = 0;
+async function renderPages(container, buf){
+  const token = ++pdfRenderToken; container.innerHTML = '<div class="loading">טוען את המסמך…</div>';
+  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf))}).promise;
+  if (token !== pdfRenderToken) return [];
+  container.innerHTML = ''; const out = [];
+  const cssW = Math.min(container.clientWidth || 360, 820); const dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (let i = 1; i <= pdf.numPages; i++){
+    const pg = await pdf.getPage(i); const vp1 = pg.getViewport({scale:1}); const vp = pg.getViewport({scale: cssW / vp1.width * dpr});
+    const wrap = document.createElement('div'); wrap.className = 'page'; wrap.style.maxWidth = cssW + 'px'; wrap.style.aspectRatio = `${vp1.width} / ${vp1.height}`;
+    const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; wrap.appendChild(cv);
+    const ov = document.createElement('div'); ov.className = 'overlay'; ov.dataset.page = i - 1; wrap.appendChild(ov);
+    const no = document.createElement('div'); no.className = 'pno'; no.textContent = `עמוד ${i} מתוך ${pdf.numPages}`; wrap.appendChild(no);
+    container.appendChild(wrap); out.push({ov, aspect: vp1.height / vp1.width});
+    pg.render({canvasContext:cv.getContext('2d'), viewport:vp});
+    if (token !== pdfRenderToken) return out;
+  }
+  return out;
+}
+
+/* ---------- editor & signing ---------- */
+const E = {doc:null, mode:'prepare', tool:null, activeSigner:null, sel:null, pagesInfo:[], signerIdx:0, consent:false};
+const signerById = id => E.doc.signers.find(s => s.id === id) || E.doc.signers[0];
+const save = () => { E.doc.updated = Date.now(); return Store.put('docs', E.doc); };
+
+async function openEditor(doc, mode='prepare'){
+  E.doc = doc; E.mode = mode; E.tool = null; E.sel = null; E.consent = false; E.activeSigner = doc.signers[0].id;
+  $('#ed-title').textContent = doc.name;
+  $('#ed-rename').hidden = $('#ed-savetpl').hidden = mode !== 'prepare';
+  show('s-editor'); renderTray();
+  try{ E.pagesInfo = await renderPages($('#pages'), doc.pdf); }catch(e){ $('#pages').innerHTML = '<div class="empty">לא הצלחתי להציג את המסמך.</div>'; return; }
+  E.pagesInfo.forEach(p => p.ov.addEventListener('click', onOverlayClick));
+  drawFields();
+  if (mode === 'sign') setTimeout(nextEmpty, 300);
+}
+$('#ed-back').onclick = async () => {
+  if (E.mode === 'sign'){ if (!(await confirmBox('לצאת מהחתימה?', 'מה שכבר מולא יישמר, ותוכלו להמשיך אחר כך מהרשימה.', 'יציאה'))) return; }
+  goHome();
+};
+$('#ed-rename').onclick = async () => { const n = await askText('שם המסמך', E.doc.name, {ok:'שמירה'}); if (n){ E.doc.name = n; $('#ed-title').textContent = n; await save(); } };
+$('#ed-savetpl').onclick = () => saveTemplate(E.doc);
+
+function canEditField(f){
+  if (E.mode === 'prepare') return E.doc.mode === 'self';
+  return f.signer === currentSigner().id;
+}
+const currentSigner = () => E.doc.signers[E.signerIdx];
+
+function drawFields(){
+  E.pagesInfo.forEach(p => { p.ov.innerHTML = ''; p.ov.classList.toggle('placing', !!E.tool); });
+  for (const f of E.doc.fields){
+    const p = E.pagesInfo[f.page]; if (!p) continue;
+    const s = signerById(f.signer); const el = document.createElement('div');
+    const mine = E.mode === 'sign' && f.signer === currentSigner().id;
+    el.className = 'field' + (f.value ? ' filled' : '') + (E.sel === f.id ? ' sel' : '') + (E.mode === 'sign' && !mine ? ' dim' : '') + (mine && !f.value && f.type !== 'checkbox' ? ' todo' : '') + (f.value && canEditField(f) ? ' mine-edit' : '');
+    el.style.cssText = `left:${f.x*100}%;top:${f.y*100}%;width:${f.w*100}%;height:${f.h*100}%;--c:var(${s.color})`;
+    el.dataset.id = f.id;
+    if (f.value){
+      if (f.type === 'signature' || f.type === 'initials') el.innerHTML = `<img src="${f.value}" alt="${FIELD_TYPES[f.type].label}">`;
+      else { const hPx = p.ov.clientHeight * f.h; el.innerHTML = `<span class="tv" style="--fs:${Math.max(7, hPx*0.62)}px;${f.type==='checkbox'?'text-align:center;font-weight:700':''}">${esc(f.value)}</span>`; }
+    } else {
+      const multi = E.doc.signers.length > 1;
+      el.innerHTML = `<span class="ph">${FIELD_TYPES[f.type].label}${multi && f.type !== 'checkbox' ? ' · ' + esc(s.name) : ''}</span>`;
+      if (f.type === 'checkbox') el.innerHTML = '';
+    }
+    if (E.mode === 'prepare' && E.sel === f.id) el.insertAdjacentHTML('beforeend', '<button class="x" aria-label="מחיקת שדה">×</button><span class="rs" aria-hidden="true">⤡</span>');
+    p.ov.appendChild(el); bindField(el, f, p);
+  }
+  renderTray();
+}
+
+function bindField(el, f, p){
+  let st = null;
+  el.addEventListener('pointerdown', e => {
+    if (e.target.classList.contains('x')) return;
+    e.stopPropagation();
+    if (E.mode !== 'prepare'){ st = {sx:e.clientX, sy:e.clientY, moved:false, kind:'tap'}; return; }
+    el.setPointerCapture(e.pointerId);
+    st = {sx:e.clientX, sy:e.clientY, fx:f.x, fy:f.y, fw:f.w, fh:f.h, moved:false, kind:e.target.classList.contains('rs') ? 'resize' : 'move'};
+  });
+  el.addEventListener('pointermove', e => {
+    if (!st || st.kind === 'tap') return;
+    const W = p.ov.clientWidth, H = p.ov.clientHeight; const dx = (e.clientX - st.sx) / W, dy = (e.clientY - st.sy) / H;
+    if (!st.moved && Math.hypot(e.clientX - st.sx, e.clientY - st.sy) < 5) return;
+    st.moved = true;
+    if (st.kind === 'move'){ f.x = Math.min(1 - f.w, Math.max(0, st.fx + dx)); f.y = Math.min(1 - f.h, Math.max(0, st.fy + dy)); }
+    else { // handle sits at bottom-left: dragging left grows width leftwards
+      const nw = Math.max(0.03, Math.min(st.fx + st.fw, st.fw - dx)); f.x = st.fx + st.fw - nw; f.w = nw; f.h = Math.max(0.015, Math.min(1 - f.y, st.fh + dy));
+      if (f.type === 'checkbox'){ f.h = f.w / p.aspect; }
+    }
+    el.style.left = f.x*100 + '%'; el.style.top = f.y*100 + '%'; el.style.width = f.w*100 + '%'; el.style.height = f.h*100 + '%';
+  });
+  el.addEventListener('pointerup', e => {
+    if (!st) return; const s0 = st; st = null;
+    if (s0.moved){ save(); drawFields(); return; }
+    onFieldTap(f);
+  });
+  el.addEventListener('pointercancel', () => { st = null; });
+  const x = el.querySelector('.x'); if (x) x.addEventListener('click', e => { e.stopPropagation(); E.doc.fields = E.doc.fields.filter(z => z !== f); E.sel = null; save(); drawFields(); });
+}
+
+async function onFieldTap(f){
+  if (E.mode === 'prepare'){
+    const wasSel = E.sel === f.id; E.sel = f.id;
+    if (E.doc.mode === 'self' && (wasSel || !f.value)) { drawFields(); await fillField(f); }
+    else drawFields();
+    return;
+  }
+  if (f.signer !== currentSigner().id){ toast(`השדה הזה של ${signerById(f.signer).name}`); return; }
+  await fillField(f);
+}
+
+async function fillField(f){
+  const s = signerById(f.signer); const isMe = s.id === 'me'; let v = null;
+  switch (f.type){
+    case 'signature': case 'initials': v = await sigPad({kind:f.type, name:s.name, allowSaved:isMe}); break;
+    case 'name': v = await askText('שם מלא', f.value || s.name); break;
+    case 'date': v = f.value ? await askText('תאריך', f.value) : fmtDate(Date.now()); break;
+    case 'text': v = await askText('טקסט', f.value, {placeholder:'מה לכתוב בשדה?'}); break;
+    case 'checkbox': v = f.value ? '' : '✓'; break;
+  }
+  if (v === null) return;
+  f.value = v; f.filledAt = v ? Date.now() : 0;
+  if (isMe && f.type === 'name' && v && !me().name){ const m = me(); m.name = v; Store.put('kv', m); }
+  await save(); drawFields();
+  if (E.mode === 'sign' && v) setTimeout(nextEmpty, 250);
+}
+
+function onOverlayClick(e){
+  if (E.mode !== 'prepare') return;
+  if (!E.tool){ if (E.sel){ E.sel = null; drawFields(); } return; }
+  const ov = e.currentTarget, r = ov.getBoundingClientRect(), page = +ov.dataset.page, info = E.pagesInfo[page];
+  const T = FIELD_TYPES[E.tool]; const w = T.w, h = T.h / info.aspect;
+  const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+  const f = {id:uid(), type:E.tool, page, x:Math.min(1-w, Math.max(0, fx - w/2)), y:Math.min(1-h, Math.max(0, fy - h/2)), w, h, signer:E.activeSigner, value:'', filledAt:0};
+  E.doc.fields.push(f); E.sel = f.id; E.tool = null; save(); drawFields();
+  if (E.doc.mode === 'self') fillField(f);
+}
+
+function renderTray(){
+  const T = $('#tray-in'); if (!E.doc) return;
+  if (E.mode === 'prepare'){
+    const multi = E.doc.mode === 'multi';
+    const empty = E.doc.fields.filter(f => !f.value).length;
+    T.innerHTML = `
+      ${multi ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
+      <div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>
+      <div class="row"><span class="hint" style="flex:1;min-width:0">${E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
+      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>להתחיל חתימה</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
+    $$('.tool', T).forEach(b => b.onclick = () => { E.tool = E.tool === b.dataset.tool ? null : b.dataset.tool; E.sel = null; drawFields(); });
+    $$('.signer', T).forEach(b => b.onclick = () => {
+      E.activeSigner = b.dataset.s;
+      if (E.sel){ const f = E.doc.fields.find(z => z.id === E.sel); if (f){ f.signer = b.dataset.s; save(); } }
+      drawFields();
+    });
+    const se = $('#sg-edit', T); if (se) se.onclick = editSigners;
+    $('#go', T).onclick = multi ? startSigning : finalize;
+  } else {
+    const s = currentSigner(); const mine = E.doc.fields.filter(f => f.signer === s.id); const req = mine.filter(f => f.type !== 'checkbox'); const done = req.filter(f => f.value).length;
+    const ready = done === req.length && E.consent;
+    T.innerHTML = `
+      <div class="row"><span class="signer" aria-pressed="true" style="--c:var(${s.color})"><i></i>${esc(s.name)}</span><div class="progress"><b style="width:${req.length ? done/req.length*100 : 100}%"></b></div><span class="hint">${done}/${req.length}</span></div>
+      <label class="consent"><input type="checkbox" id="consent" ${E.consent ? 'checked' : ''}> אני מסכים/ה לחתום על המסמך באופן אלקטרוני, וחתימתי זו מחייבת כמו חתימה בכתב יד.</label>
+      <div class="row"><button class="btn" id="next" style="flex:1" ${done === req.length ? 'disabled' : ''}>לשדה הבא</button><button class="btn primary" id="done" style="flex:1" ${ready ? '' : 'disabled'}>סיימתי לחתום</button></div>`;
+    $('#consent', T).onchange = e => { E.consent = e.target.checked; renderTray(); };
+    $('#next', T).onclick = nextEmpty;
+    $('#done', T).onclick = signerDone;
+  }
+}
+
+function nextEmpty(){
+  if (E.mode !== 'sign') return;
+  const s = currentSigner(); const f = E.doc.fields.filter(z => z.signer === s.id && !z.value && z.type !== 'checkbox').sort((a, b) => a.page - b.page || a.y - b.y)[0];
+  if (!f) return; const el = $(`.field[data-id="${f.id}"]`); if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function editSigners(){
+  const d = E.doc;
+  await modal(`<h3>מי חותם?</h3><p class="hint" style="margin:0">החותמים יחתמו לפי הסדר הזה, כל אחד בתורו על המכשיר.</p><div id="sl" style="display:flex;flex-direction:column;gap:8px"></div><button class="btn sm" id="add">הוספת חותם</button><div class="foot"><button class="btn primary" data-ok>סיום</button></div>`, (s, close) => {
+    const paint = () => {
+      $('#sl', s).innerHTML = d.signers.map((g, i) => `<div class="signer-row"><span class="sw" style="--c:var(${g.color})"></span><input class="inp" data-i="${i}" value="${esc(g.name)}" aria-label="שם החותם ${i+1}">${d.signers.length > 1 ? `<button class="icon-btn" data-rm="${i}" aria-label="הסרה">×</button>` : ''}</div>`).join('');
+      $$('#sl input', s).forEach(inp => inp.oninput = () => { d.signers[+inp.dataset.i].name = inp.value; });
+      $$('[data-rm]', s).forEach(b => b.onclick = () => { const g = d.signers[+b.dataset.rm]; d.signers.splice(+b.dataset.rm, 1); d.fields.forEach(f => { if (f.signer === g.id) f.signer = d.signers[0].id; }); paint(); });
+    };
+    paint();
+    $('#add', s).onclick = () => { if (d.signers.length >= 5){ toast('עד 5 חותמים'); return; } const used = d.signers.map(g => g.color); d.signers.push({id:uid(), name:`חותם ${d.signers.length + 1}`, color:SIGNER_COLORS.find(c => !used.includes(c)) || SIGNER_COLORS[0]}); paint(); };
+    $('[data-ok]', s).onclick = () => close(true);
+  });
+  d.signers.forEach(g => { if (!g.name.trim()) g.name = 'ללא שם'; });
+  if (!d.signers.some(g => g.id === E.activeSigner)) E.activeSigner = d.signers[0].id;
+  await save(); drawFields();
+}
+
+async function startSigning(){
+  const d = E.doc; const without = d.signers.filter(s => !d.fields.some(f => f.signer === s.id));
+  if (without.length && !(await confirmBox('יש חותמים בלי שדות', `${without.map(s => s.name).join(', ')} לא קיבלו אף שדה. להמשיך בלעדיהם?`, 'להמשיך'))) return;
+  d.signers = d.signers.filter(s => d.fields.some(f => f.signer === s.id));
+  d.status = 'pending'; d.signIdx = d.signers.findIndex(s => d.fields.some(f => f.signer === s.id && !f.value && f.type !== 'checkbox')); if (d.signIdx < 0) d.signIdx = 0;
+  d.audit.push({t:Date.now(), a:`נשלח לחתימה פרונטלית (${d.signers.length} חותמים)`, who:me().name || 'אני'});
+  E.doc = d; await save(); handoff(d);
+}
+
+function handoff(d){
+  const s = d.signers[d.signIdx || 0]; show('s-handoff');
+  $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(${s.color})">${esc((s.name||'?').trim()[0] || '?')}</div><p>חותם ${(d.signIdx||0) + 1} מתוך ${d.signers.length}</p><h2>מעבירים את המכשיר ל${esc(s.name)}</h2><p>${esc(d.name)} · ${d.fields.filter(f => f.signer === s.id && f.type !== 'checkbox').length} שדות לחתימה</p>
+    <div class="stack"><button class="btn primary" id="ho-go">אני ${esc(s.name)}, אפשר להתחיל</button><button class="btn" id="ho-home">אחר כך</button></div>`;
+  $('#ho-go').onclick = async () => { d.audit.push({t:Date.now(), a:'פתח/ה את המסמך לחתימה', who:s.name}); await Store.put('docs', d); E.signerIdx = d.signIdx || 0; openEditor(d, 'sign'); };
+  $('#ho-home').onclick = goHome;
+}
+
+async function signerDone(){
+  const d = E.doc, s = currentSigner();
+  s.signedAt = Date.now(); s.device = deviceLabel();
+  d.audit.push({t:Date.now(), a:'חתם/ה על המסמך ואישר/ה הסכמה לחתימה אלקטרונית', who:s.name});
+  const next = d.signers.findIndex((g, i) => i > E.signerIdx && !g.signedAt);
+  if (next >= 0){ d.signIdx = next; await save(); handoff(d); }
+  else { await save(); finalize(); }
+}
+
+/* ---------- finalize ---------- */
+function fieldPng(f, wPt, hPt){
+  return new Promise(async res => {
+    const k = 4, cv = document.createElement('canvas'); cv.width = Math.max(4, Math.round(wPt*k)); cv.height = Math.max(4, Math.round(hPt*k)); const x = cv.getContext('2d');
+    if (f.type === 'signature' || f.type === 'initials'){
+      const img = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = f.value; });
+      if (img){ const s = Math.min(cv.width / img.width, cv.height / img.height); const w = img.width*s, h = img.height*s; x.drawImage(img, (cv.width-w)/2, (cv.height-h)/2, w, h); }
+    } else {
+      x.fillStyle = '#111'; x.direction = 'rtl'; x.textBaseline = 'middle';
+      let fs = cv.height * 0.72; const font = fs => `${f.type === 'checkbox' ? 700 : 400} ${fs}px Rubik, Arial, sans-serif`;
+      x.font = font(fs); while (x.measureText(f.value).width > cv.width * 0.96 && fs > 6){ fs -= 1; x.font = font(fs); }
+      if (f.type === 'checkbox'){ x.textAlign = 'center'; x.fillText('✓', cv.width/2, cv.height/2); }
+      else { x.textAlign = 'right'; x.fillText(f.value, cv.width - cv.width*0.02, cv.height/2); }
+    }
+    cv.toBlob(b => b.arrayBuffer().then(res), 'image/png');
+  });
+}
+
+async function auditPagePng(d){
+  try{ await Promise.all(['700 40px Rubik','400 20px Rubik','900 40px "Frank Ruhl Libre"'].map(f => document.fonts.load(f, 'אבג'))); }catch(e){}
+  const W = 1240, H = 1754, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const R = W - 100; x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.direction = 'rtl'; x.textAlign = 'right';
+  x.fillStyle = '#2343c9'; x.fillRect(0, 0, W, 14);
+  x.fillStyle = '#141b33'; x.font = '900 50px "Frank Ruhl Libre", serif'; x.fillText('תעודת השלמה ויומן ביקורת', R, 130);
+  x.font = '400 24px Rubik, sans-serif'; x.fillStyle = '#5b6482'; x.fillText('הופק באפליקציית חותם', R, 172);
+  const kv = (k, v, y, mono) => { x.fillStyle = '#5b6482'; x.font = '400 24px Rubik, sans-serif'; x.textAlign = 'right'; x.direction = 'rtl'; x.fillText(k, R, y);
+    x.fillStyle = '#141b33'; if (mono){ x.font = '400 20px Menlo, Consolas, monospace'; x.direction = 'ltr'; x.textAlign = 'right'; } else x.font = '500 24px Rubik, sans-serif'; x.fillText(v, R - 290, y); x.direction = 'rtl'; x.textAlign = 'right'; };
+  let y = 250;
+  kv('שם המסמך', d.name, y); y += 50; kv('מזהה מסמך', d.id, y, true); y += 50; kv('SHA-256 של המקור', d.hash.slice(0, 32), y, true); y += 32; kv('', d.hash.slice(32), y, true); y += 50;
+  kv('נוצר', fmtDT(d.created), y); y += 50; kv('הושלם', fmtDT(Date.now()), y); y += 50; kv('עמודים', String(d.pages || '—'), y); y += 70;
+  x.fillStyle = '#141b33'; x.font = '700 32px Rubik, sans-serif'; x.fillText('חותמים', R, y); y += 26;
+  for (const s of d.signers){
+    x.fillStyle = '#f3f4f8'; x.fillRect(100, y, W - 200, 150);
+    const sig = d.fields.find(f => f.signer === s.id && f.type === 'signature' && f.value) || d.fields.find(f => f.signer === s.id && f.type === 'initials' && f.value);
+    x.fillStyle = '#141b33'; x.font = '700 28px Rubik, sans-serif'; x.fillText(s.name, R - 24, y + 48);
+    x.fillStyle = '#5b6482'; x.font = '400 22px Rubik, sans-serif';
+    x.fillText(`חתם/ה: ${fmtDT(s.signedAt || Date.now())}`, R - 24, y + 88);
+    x.fillText(`מכשיר: ${s.device || deviceLabel()} · שדות: ${d.fields.filter(f => f.signer === s.id && f.value).length}`, R - 24, y + 122);
+    if (sig){ const img = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = sig.value; });
+      if (img){ const sc = Math.min(300 / img.width, 110 / img.height); x.drawImage(img, 130, y + 20, img.width*sc, img.height*sc); } }
+    y += 170; if (y > 1200) break;
+  }
+  y += 20; x.fillStyle = '#141b33'; x.font = '700 32px Rubik, sans-serif'; x.fillText('אירועים', R, y); y += 46;
+  for (const ev of d.audit.slice(-14)){
+    x.font = '400 22px Rubik, sans-serif'; x.fillStyle = '#5b6482'; x.fillText(fmtDT(ev.t), R, y); x.fillStyle = '#141b33'; x.fillText(`${ev.who} — ${ev.a}`, R - 230, y); y += 38; if (y > H - 120) break;
+  }
+  x.fillStyle = '#8a92ab'; x.font = '400 19px Rubik, sans-serif'; x.fillText('החתימות נאספו במכשיר המצוין לעיל. טביעת SHA-256 מאפשרת לוודא שהמסמך המקורי לא שונה.', R, H - 70);
+  return new Promise(r => cv.toBlob(b => b.arrayBuffer().then(r), 'image/png'));
+}
+
+async function finalize(){
+  const d = E.doc; show('s-handoff');
+  $('#handoff').innerHTML = '<div class="big-seal">ח</div><h2>מפיק את ה-PDF החתום…</h2>';
+  try{
+    if (d.mode === 'self'){ const s = d.signers[0]; s.signedAt = Date.now(); s.device = deviceLabel(); d.audit.push({t:Date.now(), a:'חתם/ה על המסמך', who:s.name}); }
+    d.audit.push({t:Date.now(), a:'המסמך הושלם ונחתם', who:'חותם'});
+    const pdf = await PDFLib.PDFDocument.load(copyBuf(d.pdf), {ignoreEncryption:true}); const pages = pdf.getPages();
+    for (const f of d.fields){
+      if (!f.value) continue; const pg = pages[f.page]; if (!pg) continue;
+      const {width, height} = pg.getSize(); const rot = ((pg.getRotation().angle % 360) + 360) % 360;
+      const vw = rot % 180 ? height : width, vh = rot % 180 ? width : height; // visible (rotated) size
+      const w = f.w*vw, h = f.h*vh, vx = f.x*vw, vy = f.y*vh; // top-left in visible space
+      const png = await fieldPng(f, w, h); const img = await pdf.embedPng(png);
+      const deg = PDFLib.degrees;
+      if (rot === 0) pg.drawImage(img, {x:vx, y:height - vy - h, width:w, height:h});
+      else if (rot === 90) pg.drawImage(img, {x:vy, y:vx, width:w, height:h, rotate:deg(90)});
+      else if (rot === 180) pg.drawImage(img, {x:width - vx, y:vy, width:w, height:h, rotate:deg(180)});
+      else pg.drawImage(img, {x:width - vy, y:height - vx, width:w, height:h, rotate:deg(270)});
+    }
+    const ap = await pdf.embedPng(await auditPagePng(d)); const p = pdf.addPage([595.28, 841.89]); p.drawImage(ap, {x:0, y:0, width:595.28, height:841.89});
+    pdf.setTitle(d.name); pdf.setProducer('חותם'); pdf.setModificationDate(new Date());
+    const bytes = await pdf.save(); d.final = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength); d.finalHash = await sha256(d.final);
+    d.status = 'completed'; d.completed = Date.now(); d.updated = Date.now(); await Store.put('docs', d);
+    doneScreen(d);
+  }catch(e){ console.error(e); $('#handoff').innerHTML = `<h2>ההפקה נכשלה</h2><p>${esc(e.message || e)}</p><div class="stack"><button class="btn" id="err-home">חזרה</button></div>`; $('#err-home').onclick = goHome; }
+}
+
+function doneScreen(d){
+  show('s-handoff');
+  $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(--ok)">✓</div><h2>המסמך חתום</h2><p>${esc(d.name)} · ${d.signers.map(s => esc(s.name)).join(', ')}</p>
+    <div class="hash" title="טביעת SHA-256 של הקובץ החתום">${d.finalHash}</div>
+    <div class="stack"><button class="btn primary" id="dn-dl">שמירת PDF</button>${canShare() ? '<button class="btn" id="dn-sh">שיתוף (וואטסאפ, מייל…)</button>' : ''}<button class="btn" id="dn-view">צפייה ויומן ביקורת</button><button class="btn" id="dn-home">לרשימת המסמכים</button></div>`;
+  $('#dn-dl').onclick = () => downloadDoc(d); const sh = $('#dn-sh'); if (sh) sh.onclick = () => shareDoc(d);
+  dbxAutoSave(d, $('#handoff .stack'));
+  $('#dn-view').onclick = () => viewDoc(d); $('#dn-home').onclick = goHome;
+}
+
+/* ---------- save / share ---------- */
+const inArtifact = () => !!(window.claude && typeof window.claude.use === 'function');
+const fileName = d => `${d.name.replace(/[\\/:*?"<>|]/g, '_')} - חתום.pdf`;
+function canShare(){ try{ return !inArtifact() && !!navigator.canShare && navigator.canShare({files:[new File([new Uint8Array(1)], 'a.pdf', {type:'application/pdf'})]}); }catch(e){ return false; } }
+async function downloadDoc(d){
+  const blob = new Blob([d.final], {type:'application/pdf'});
+  if (inArtifact()){
+    const dl = await window.claude.use('downloads');
+    if (!dl){ toast('שמירת קבצים לא זמינה בתצוגה הזו'); return; }
+    try{ await dl.save({filename:fileName(d), data:blob}); toast('הקובץ נשמר'); }
+    catch(e){ if (e && e.code === 'declined') return; toast(e && e.code === 'rate_limited' ? 'רגע, חלון שמירה כבר פתוח' : 'השמירה לא הצליחה'); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName(d); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function shareDoc(d){
+  try{ await navigator.share({files:[new File([d.final], fileName(d), {type:'application/pdf'})], title:d.name}); }
+  catch(e){ if (e.name !== 'AbortError') toast('השיתוף לא הצליח, נסו "שמירת PDF"'); }
+}
+
+/* ---------- open / view ---------- */
+function openDoc(d){
+  if (!d) return;
+  if (d.status === 'completed') return viewDoc(d);
+  if (d.status === 'pending') return handoff(d);
+  openEditor(d);
+}
+async function viewDoc(d){
+  show('s-view'); $('#v-title').textContent = d.name;
+  const B = $('#v-body');
+  B.innerHTML = `<div class="row" style="padding-block:14px"><button class="btn primary" id="v-dl">שמירת PDF</button>${canShare() ? '<button class="btn" id="v-sh">שיתוף</button>' : ''}<button class="btn" id="v-dup">חתימה מחדש</button>${Dbx.connected() ? `<button class="btn" id="v-dbx">${d.dbx ? 'שמירה שוב בדרופבוקס' : 'שמירה בדרופבוקס'}</button>` : ''}<span class="spacer"></span><button class="btn danger" id="v-del">מחיקה</button></div>
+    <div class="section-h"><h3>יומן ביקורת</h3></div>
+    <div class="audit">${d.audit.map(ev => `<div class="ev"><time>${fmtDT(ev.t)}</time><span><b>${esc(ev.who)}</b> · ${esc(ev.a)}</span></div>`).join('')}</div>
+    <div class="section-h"><h3>טביעת SHA-256 של הקובץ החתום</h3></div><div class="hash">${d.finalHash || '—'}</div>
+    <div class="section-h"><h3>המסמך החתום</h3></div><div class="pages" id="v-pages" style="padding-bottom:40px"></div>`;
+  const vd = $('#v-dbx'); if (vd) vd.onclick = async () => { vd.disabled = true; try{ await dbxUploadDoc(d); toast('נשמר בדרופבוקס: ' + d.dbx.path); }catch(e){ toast(dbxErr(e)); } vd.disabled = false; };
+  $('#v-dl').onclick = () => downloadDoc(d); const sh = $('#v-sh'); if (sh) sh.onclick = () => shareDoc(d);
+  $('#v-del').onclick = async () => { if (await confirmBox('למחוק את המסמך?', 'המסמך החתום ויומן הביקורת יימחקו מהמכשיר.', 'מחיקה', true)){ await Store.del('docs', d.id); goHome(); } };
+  $('#v-dup').onclick = async () => {
+    const nd = {...d, id:uid(), status:'draft', created:Date.now(), updated:Date.now(), final:null, finalHash:'', completed:0, signIdx:0,
+      signers:d.signers.map(s => ({id:s.id, name:s.name, color:s.color})), fields:d.fields.map(f => ({...f, id:uid(), value:'', filledAt:0})), audit:[{t:Date.now(), a:`שוכפל מ"${d.name}"`, who:me().name || 'אני'}], sample:false};
+    await Store.put('docs', nd); openEditor(nd);
+  };
+  try{ await renderPages($('#v-pages'), d.final); }catch(e){ $('#v-pages').innerHTML = '<div class="empty">לא הצלחתי להציג את הקובץ.</div>'; }
+}
+
+
+/* ---------- Dropbox (installed app only; the artifact sandbox blocks Dropbox's API) ---------- */
+const Dbx = {
+  cfg(){ return Store.get('kv', 'dbx') || {id:'dbx', key:'', refresh:'', access:'', exp:0, folder:'/מסמכים חתומים', account:''}; },
+  available(){ return !inArtifact(); },
+  connected(){ const c = this.cfg(); return this.available() && !!c.refresh; },
+  redirect(){ return location.origin + location.pathname; },
+  ls(k, v){ try{ if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){ return null; } },
+  b64url(bytes){ return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); },
+  async connect(key){
+    const c = this.cfg(); c.key = key; await Store.put('kv', c);
+    const verifier = this.b64url(crypto.getRandomValues(new Uint8Array(48)));
+    const challenge = this.b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    const state = this.b64url(crypto.getRandomValues(new Uint8Array(12)));
+    this.ls('dbx_verifier', verifier); this.ls('dbx_state', state);
+    const q = new URLSearchParams({client_id:key, response_type:'code', code_challenge:challenge, code_challenge_method:'S256', redirect_uri:this.redirect(), token_access_type:'offline', state});
+    location.href = 'https://www.dropbox.com/oauth2/authorize?' + q;
+  },
+  async handleRedirect(){
+    const u = new URL(location.href); const code = u.searchParams.get('code'), state = u.searchParams.get('state'), err = u.searchParams.get('error');
+    if (!code && !err) return;
+    history.replaceState(null, '', this.redirect());
+    if (err){ toast('החיבור לדרופבוקס בוטל'); return; }
+    if (state !== this.ls('dbx_state')){ toast('החיבור לדרופבוקס נכשל, נסו שוב'); return; }
+    const c = this.cfg();
+    try{
+      const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method:'POST', body:new URLSearchParams({code, grant_type:'authorization_code', code_verifier:this.ls('dbx_verifier'), client_id:c.key, redirect_uri:this.redirect()})});
+      const j = await r.json(); if (!r.ok) throw new Error(j.error_description || j.error || r.status);
+      c.access = j.access_token; c.refresh = j.refresh_token; c.exp = Date.now() + (j.expires_in || 14400) * 1000;
+      await Store.put('kv', c);
+      try{ const a = await this.rpc('users/get_current_account', null); c.account = a.name?.display_name || a.email || ''; await Store.put('kv', c); }catch(e){}
+      toast('דרופבוקס מחובר');
+    }catch(e){ toast('החיבור לדרופבוקס נכשל: ' + e.message); }
+    this.ls('dbx_verifier', null); this.ls('dbx_state', null);
+  },
+  async token(force){
+    const c = this.cfg(); if (!c.refresh) throw {code:'not_connected'};
+    if (!force && c.access && c.exp > Date.now() + 60000) return c.access;
+    const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method:'POST', body:new URLSearchParams({grant_type:'refresh_token', refresh_token:c.refresh, client_id:c.key})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok){ if (r.status === 400 || r.status === 401){ c.refresh = ''; c.access = ''; await Store.put('kv', c); renderDbxCard(); throw {code:'expired'}; } throw {code:'network'}; }
+    c.access = j.access_token; c.exp = Date.now() + (j.expires_in || 14400) * 1000; await Store.put('kv', c); return c.access;
+  },
+  arg(o){ return JSON.stringify(o).replace(/[\u007f-￿]/g, ch => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0')); },
+  async call(make){
+    let t = await this.token(); let r = await make(t);
+    if (r.status === 401){ t = await this.token(true); r = await make(t); }
+    if (!r.ok){ let j = {}; try{ j = await r.json(); }catch(e){} throw {code:'api', status:r.status, summary:j.error_summary || ''}; }
+    return r;
+  },
+  async rpc(ep, body){ const r = await this.call(t => fetch('https://api.dropboxapi.com/2/' + ep, {method:'POST', headers:{Authorization:'Bearer ' + t, 'Content-Type':'application/json'}, body:JSON.stringify(body)})); return r.json(); },
+  async upload(path, data){ const r = await this.call(t => fetch('https://content.dropboxapi.com/2/files/upload', {method:'POST', headers:{Authorization:'Bearer ' + t, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg':this.arg({path, mode:'add', autorename:true, mute:false})}, body:data})); return r.json(); },
+  async download(path){ const r = await this.call(t => fetch('https://content.dropboxapi.com/2/files/download', {method:'POST', headers:{Authorization:'Bearer ' + t, 'Dropbox-API-Arg':this.arg({path})}})); return r.arrayBuffer(); },
+  async list(path){
+    let j = await this.rpc('files/list_folder', {path: path === '/' ? '' : path, recursive:false, limit:500}); const out = [...j.entries];
+    while (j.has_more && out.length < 3000){ j = await this.rpc('files/list_folder/continue', {cursor:j.cursor}); out.push(...j.entries); }
+    return out;
+  }
+};
+function dbxErr(e){
+  if (!e) return 'פעולת הדרופבוקס נכשלה';
+  if (e.code === 'not_connected') return 'דרופבוקס לא מחובר';
+  if (e.code === 'expired') return 'החיבור לדרופבוקס פג. התחברו מחדש מהמסך הראשי';
+  if (e.code === 'network' || e instanceof TypeError) return 'אין חיבור לאינטרנט. נסו שוב';
+  if (e.status === 409 && /not_found/.test(e.summary)) return 'התיקייה או הקובץ לא נמצאו בדרופבוקס';
+  if (e.status === 409 && /insufficient_space/.test(e.summary)) return 'אין מספיק מקום בדרופבוקס';
+  if (e.status === 401 || /missing_scope/.test(e.summary || '')) return 'לאפליקציה בדרופבוקס חסרות הרשאות files.content.read/write';
+  return 'פעולת הדרופבוקס נכשלה' + (e.summary ? ` (${e.summary})` : '');
+}
+const isSignable = n => /\.(pdf|jpe?g|png|webp|gif|bmp)$/i.test(n);
+const mimeOf = n => /\.pdf$/i.test(n) ? 'application/pdf' : /\.png$/i.test(n) ? 'image/png' : /\.webp$/i.test(n) ? 'image/webp' : /\.gif$/i.test(n) ? 'image/gif' : /\.bmp$/i.test(n) ? 'image/bmp' : 'image/jpeg';
+const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b/1024)) + ' KB';
+
+function renderDbxCard(){
+  const C = $('#dbx-card'); const c = Dbx.cfg();
+  if (!Dbx.available()){ C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">זמין בגרסה המותקנת</div><div class="hint">החיבור לדרופבוקס עובד באפליקציה שמותקנת בטלפון, לא בתצוגה המקדימה הזו.</div></div>`; return; }
+  if (!c.refresh){
+    C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">לא מחובר</div><div class="hint">מסמכים חתומים יישמרו אוטומטית בתיקייה בדרופבוקס</div></div><button class="btn sm primary" id="dbx-conn">חיבור</button>`;
+    $('#dbx-conn').onclick = dbxConnectDialog; return;
+  }
+  C.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:500">מחובר${c.account ? ' · ' + esc(c.account) : ''}</div><div class="hint" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">שמירה אוטומטית אל <span dir="ltr">${esc(c.folder)}</span></div></div><button class="btn sm" id="dbx-folder">תיקייה</button><button class="btn sm" id="dbx-off" aria-label="ניתוק">ניתוק</button>`;
+  $('#dbx-folder').onclick = async () => { const p = await dbxBrowse({mode:'folder', start:c.folder}); if (p){ const cc = Dbx.cfg(); cc.folder = p; await Store.put('kv', cc); renderHome(); toast('המסמכים החתומים יישמרו ב-' + p); } };
+  $('#dbx-off').onclick = async () => { if (await confirmBox('לנתק את דרופבוקס?', 'הקבצים בדרופבוקס לא יימחקו. מסמכים חדשים יישמרו רק במכשיר.', 'ניתוק')){ const cc = Dbx.cfg(); cc.refresh = cc.access = ''; cc.exp = 0; await Store.put('kv', cc); renderHome(); } };
+}
+
+function dbxConnectDialog(){
+  const c = Dbx.cfg(); const uri = Dbx.redirect();
+  return modal(`<h3>חיבור לדרופבוקס</h3>
+    <p class="hint" style="margin:0">אפשר להשתמש באותה אפליקציית דרופבוקס של הסורק. רק צריך להוסיף לה את כתובת ההפניה שלמטה. אם אין אפליקציה: dropbox.com/developers/apps ← Create app ← Scoped access ← Full Dropbox. בלשונית Permissions מסמנים files.content.write ו-files.content.read.</p>
+    <label class="hint" for="dbx-uri">Redirect URI (מדביקים בהגדרות האפליקציה בדרופבוקס, לשונית Settings)</label>
+    <div class="row"><input class="inp" id="dbx-uri" readonly value="${esc(uri)}" dir="ltr" style="flex:1;min-width:0"><button class="btn sm" id="dbx-copy">העתקה</button></div>
+    <label class="hint" for="dbx-key">App key</label>
+    <input class="inp" id="dbx-key" dir="ltr" value="${esc(c.key)}" placeholder="למשל a1b2c3d4e5f6g7h" autocomplete="off">
+    <div class="foot"><button class="btn" data-x>ביטול</button><button class="btn primary" data-ok>התחברות</button></div>`, (s, close) => {
+    $('#dbx-copy', s).onclick = () => { const i = $('#dbx-uri', s); navigator.clipboard?.writeText(i.value).then(() => toast('הועתק'), () => { i.select(); }); };
+    $('[data-x]', s).onclick = () => close(null);
+    $('[data-ok]', s).onclick = () => { const k = $('#dbx-key', s).value.trim(); if (!/^[a-z0-9]{8,}$/i.test(k)){ toast('הדביקו את ה-App key מדף האפליקציה בדרופבוקס'); return; } close(k); Dbx.connect(k); };
+  });
+}
+
+/* folder / file browser. mode 'file' resolves an entry, mode 'folder' resolves a path */
+function dbxBrowse({mode='file', start=''}={}){
+  return modal(`<div class="row"><h3 style="flex:1">${mode === 'folder' ? 'בחירת תיקייה' : 'בחירת מסמך מדרופבוקס'}</h3></div>
+    <div class="row"><button class="btn sm" id="br-up">למעלה</button><span class="hint" id="br-path" dir="ltr" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right"></span></div>
+    <div class="list" id="br-list" style="padding-bottom:0;min-height:200px"></div>
+    <div class="foot">${mode === 'folder' ? '<button class="btn" id="br-new">תיקייה חדשה</button><button class="btn primary" id="br-here">שמירה כאן</button>' : '<button class="btn" data-x>ביטול</button>'}</div>`, (s, close) => {
+    let path = start || '';
+    const go = async p => {
+      path = p; $('#br-path', s).textContent = path || '/'; const L = $('#br-list', s); L.innerHTML = '<div class="loading">טוען…</div>';
+      try{
+        const ents = (await Dbx.list(path)).filter(e => e['.tag'] === 'folder' || (mode === 'file' && isSignable(e.name)));
+        ents.sort((a, b) => (a['.tag'] === 'folder' ? 0 : 1) - (b['.tag'] === 'folder' ? 0 : 1) || (b.server_modified || '').localeCompare(a.server_modified || '') || a.name.localeCompare(b.name, 'he'));
+        L.innerHTML = ents.length ? ents.map((e, i) => `<button class="item" data-i="${i}"><span class="thumb" style="display:grid;place-items:center;width:36px;height:36px;border:0;background:var(--sunk)">${e['.tag'] === 'folder' ? '📁' : '📄'}</span><span class="meta"><div class="name">${esc(e.name)}</div>${e['.tag'] === 'file' ? `<div class="sub">${fmtDate(e.server_modified)} · ${fmtSize(e.size)}</div>` : ''}</span></button>`).join('')
+          : `<div class="empty">${mode === 'file' ? 'אין כאן קבצי PDF או תמונות' : 'אין תתי-תיקיות'}</div>`;
+        $$('.item', L).forEach(b => b.onclick = () => { const e = ents[+b.dataset.i]; if (e['.tag'] === 'folder') go(e.path_display); else close(e); });
+      }catch(e){
+        if (e && e.status === 409 && path){ go(''); return; }
+        L.innerHTML = `<div class="empty">${esc(dbxErr(e))}</div>`;
+      }
+    };
+    $('#br-up', s).onclick = () => { if (!path) return; go(path.split('/').slice(0, -1).join('/')); };
+    const x = $('[data-x]', s); if (x) x.onclick = () => close(null);
+    const here = $('#br-here', s); if (here) here.onclick = () => close(path || '/');
+    const nw = $('#br-new', s); if (nw) nw.onclick = async () => {
+      const n = await askText('שם התיקייה החדשה', '', {ok:'יצירה'}); if (!n) return;
+      try{ const r = await Dbx.rpc('files/create_folder_v2', {path:(path === '/' ? '' : path) + '/' + n.replace(/[\\/]/g, '-'), autorename:false}); go(r.metadata.path_display); }catch(e){ toast(dbxErr(e)); }
+    };
+    go(path);
+  });
+}
+
+async function dbxUploadDoc(d){
+  const c = Dbx.cfg(); const folder = (c.folder || '').replace(/\/+$/, '');
+  const r = await Dbx.upload(`${folder}/${fileName(d)}`, new Blob([d.final], {type:'application/pdf'}));
+  d.dbx = {path:r.path_display, at:Date.now()}; d.audit.push({t:Date.now(), a:'נשמר בדרופבוקס', who:'חותם'}); await Store.put('docs', d);
+  return d.dbx;
+}
+async function dbxAutoSave(d, host){
+  if (!Dbx.connected() || !host) return;
+  const line = document.createElement('div'); line.className = 'hint'; line.setAttribute('role', 'status'); line.textContent = 'שומר בדרופבוקס…'; host.prepend(line);
+  try{ const r = await dbxUploadDoc(d); line.innerHTML = `☁ נשמר בדרופבוקס: <span dir="ltr">${esc(r.path)}</span>`; }
+  catch(e){ line.innerHTML = `${esc(dbxErr(e))} <button class="btn sm" style="margin-inline-start:6px">ניסיון נוסף</button>`; $('button', line).onclick = () => { line.remove(); dbxAutoSave(d, host); }; }
+}
+
+let dbxListToken = 0;
+async function renderDbxList(){
+  const L = $('#doclist'); const tok = ++dbxListToken;
+  if (!Dbx.connected()){ L.innerHTML = `<div class="empty">${Dbx.available() ? 'חברו את דרופבוקס כדי לראות כאן את המסמכים החתומים' : 'החיבור לדרופבוקס זמין בגרסה המותקנת'}</div>`; return; }
+  const c = Dbx.cfg(); L.innerHTML = '<div class="loading">טוען מדרופבוקס…</div>';
+  try{
+    const q = $('#q').value.trim();
+    let ents = (await Dbx.list(c.folder)).filter(e => e['.tag'] === 'file' && /\.pdf$/i.test(e.name));
+    if (tok !== dbxListToken) return;
+    if (q) ents = ents.filter(e => e.name.includes(q));
+    ents.sort((a, b) => (b.server_modified || '').localeCompare(a.server_modified || ''));
+    L.innerHTML = ents.length ? ents.map((e, i) => `<button class="item" data-i="${i}"><span class="thumb" style="display:grid;place-items:center;font-size:20px">☁</span><span class="meta"><div class="name">${esc(e.name)}</div><div class="sub">${fmtDT(e.server_modified)} · ${fmtSize(e.size)}</div></span></button>`).join('')
+      : `<div class="empty">אין עדיין מסמכים חתומים בתיקייה <span dir="ltr">${esc(c.folder)}</span></div>`;
+    $$('.item', L).forEach(b => b.onclick = () => viewRemote(ents[+b.dataset.i]));
+  }catch(e){ if (tok === dbxListToken){ L.innerHTML = `<div class="empty">${esc(dbxErr(e))}</div>`; if (e && e.status === 409) { /* folder not created yet */ L.innerHTML = `<div class="empty">התיקייה <span dir="ltr">${esc(c.folder)}</span> תיווצר עם המסמך החתום הראשון</div>`; } } }
+}
+
+async function viewRemote(e){
+  show('s-view'); $('#v-title').textContent = e.name.replace(/\.pdf$/i, '');
+  const B = $('#v-body'); B.innerHTML = '<div class="loading">מוריד מדרופבוקס…</div>';
+  let buf; try{ buf = await Dbx.download(e.path_lower); }catch(err){ B.innerHTML = `<div class="empty" style="margin-top:20px">${esc(dbxErr(err))}</div>`; return; }
+  B.innerHTML = `<div class="row" style="padding-block:14px"><button class="btn primary" id="r-dl">שמירה במכשיר</button>${canShare() ? '<button class="btn" id="r-sh">שיתוף</button>' : ''}<button class="btn" id="r-sign">פתיחה לחתימה נוספת</button></div>
+    <div class="hint" dir="ltr" style="text-align:right">${esc(e.path_display)}</div><div class="pages" id="r-pages" style="padding-bottom:40px"></div>`;
+  const pseudo = {name:e.name.replace(/(\s*-\s*חתום)?\.pdf$/i, ''), final:buf};
+  $('#r-dl').onclick = () => downloadDoc(pseudo); const sh = $('#r-sh'); if (sh) sh.onclick = () => shareDoc(pseudo);
+  $('#r-sign').onclick = async () => { const m = await pickMode(); if (m) newDoc(m, new File([buf], e.name, {type:'application/pdf'})); };
+  try{ await renderPages($('#r-pages'), buf); }catch(err){ $('#r-pages').innerHTML = '<div class="empty">לא הצלחתי להציג את הקובץ.</div>'; }
+}
+
+function pickMode(){
+  return modal(`<h3>מי חותם על המסמך?</h3><div class="stack" style="max-width:none"><button class="btn primary" data-m="self">רק אני</button><button class="btn" data-m="multi">כמה חותמים, על המכשיר הזה</button><button class="btn" data-m="">ביטול</button></div>`, (s, close) => {
+    $$('[data-m]', s).forEach(b => b.onclick = () => close(b.dataset.m || null));
+  });
+}
+
+$('#act-dbx').onclick = async () => {
+  if (!Dbx.available()){ toast('החיבור לדרופבוקס זמין בגרסה המותקנת'); return; }
+  if (!Dbx.connected()){ dbxConnectDialog(); return; }
+  const e = await dbxBrowse({mode:'file', start:Store.get('kv', 'dbx_last')?.path || ''}); if (!e) return;
+  Store.put('kv', {id:'dbx_last', path:e.path_display.split('/').slice(0, -1).join('/')});
+  const mode = await pickMode(); if (!mode) return;
+  toast('מוריד מדרופבוקס…');
+  try{ const buf = await Dbx.download(e.path_lower); newDoc(mode, new File([buf], e.name, {type:mimeOf(e.name)})); }catch(err){ toast(dbxErr(err)); }
+};
+
+/* ---------- boot ---------- */
+async function seed(){
+  if (Store.get('kv', 'seeded')) return;
+  try{
+    const buf = await samplePdf(); const {thumb, pages} = await thumbOf(buf); const h = await sha256(buf); const m = me();
+    const signers = [{id:'me', name:m.name || 'אני', color:SIGNER_COLORS[0]}, {id:'c1', name:'ישראל ישראלי', color:SIGNER_COLORS[1]}];
+    const a = 1754/1240;
+    const fields = [
+      {id:uid(), type:'signature', page:0, x:(1130-420)/1240, y:(1420+30)/1754, w:420/1240, h:80/1754, signer:'c1', value:'', filledAt:0},
+      {id:uid(), type:'date', page:0, x:(1130-800)/1240, y:(1420+60)/1754, w:240/1240, h:50/1754, signer:'c1', value:'', filledAt:0},
+      {id:uid(), type:'signature', page:0, x:(1130-420)/1240, y:(1590+30)/1754, w:420/1240, h:80/1754, signer:'me', value:'', filledAt:0}
+    ];
+    void a;
+    const doc = {id:uid(), name:'דוגמה: הזמנת עבודה למשטח שיש', mode:'multi', sample:true, status:'draft', created:Date.now(), updated:Date.now(), pdf:buf, thumb, pages, signers, fields, audit:[{t:Date.now(), a:'מסמך לדוגמה נוצר', who:'חותם'}], hash:h};
+    await Store.put('docs', doc);
+    await Store.put('templates', {id:uid(), name:'הזמנת עבודה למשטח שיש', created:Date.now(), pdf:copyBuf(buf), thumb, pages, hash:h, signers:[{id:'me', name:'אני', color:SIGNER_COLORS[0]}, {id:'c1', name:'לקוח', color:SIGNER_COLORS[1]}], fields:fields.map(f => ({...f}))});
+    await Store.put('kv', {id:'seeded', v:1});
+  }catch(e){ console.warn('seed failed', e); }
+}
+(async () => {
+  await Store.open();
+  if (!window.pdfjsLib || !window.PDFLib){ $('#doclist').innerHTML = '<div class="empty">הספריות לא נטענו. בדקו חיבור לאינטרנט ורעננו.</div>'; return; }
+  await seed(); await Dbx.handleRedirect(); renderHome();
+})();
+})();
+</script>
+<script>if("serviceWorker" in navigator&&!window.claude)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script></body></html>
