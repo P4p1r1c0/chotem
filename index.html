@@ -84,6 +84,8 @@ main{flex:1}
 .pill.completed{background:var(--ok-soft);color:var(--ok)}
 .pill.sample{background:var(--accent-soft);color:var(--accent)}
 .pill.remote{background:var(--accent-soft);color:var(--accent)}
+#act-multi{order:-1}
+#act-multi .ic{background:var(--accent);color:var(--on-accent)}
 .empty{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted)}
 .mysig{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px}
 .mysig .box{width:120px;height:52px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;flex:none;overflow:hidden}
@@ -190,7 +192,7 @@ main{flex:1}
     <header class="top"><div class="wrap">
       <div class="brand"><span class="seal">ח</span>חותם</div>
       <span class="spacer"></span>
-      <button class="icon-btn" id="btn-templates" aria-label="תבניות" title="תבניות"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></button>
+      <button class="icon-btn" id="btn-templates" hidden aria-label="תבניות" title="תבניות"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></button>
     </div></header>
     <main class="wrap">
       <div class="hero">
@@ -199,8 +201,8 @@ main{flex:1}
       </div>
       <div class="actions">
         <button class="action" id="act-self"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c3-1 4-8 6-8s0 7 2 7 2-4 4-4 1 3 3 3 3-1 3-1"/><path d="M3 21h18"/></svg></span><span><b>לחתום בעצמי</b><span>אני היחיד שחותם על המסמך</span></span></button>
-        <button class="action" id="act-multi"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.4 1.4 5 4.5"/></svg></span><span><b>חתימה פרונטלית</b><span>כמה אנשים חותמים על אותו מכשיר, אחד אחרי השני</span></span></button>
-        <button class="action" id="act-tpl"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></span><span><b>מתבנית</b><span>הזמנת עבודה, הצעת מחיר, טופס מסירה</span></span></button>
+        <button class="action" id="act-multi"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.4 1.4 5 4.5"/></svg></span><span><b>החתמת לקוח</b><span>טופס אישור מדידה לפני ייצור שיש</span></span></button>
+        <button class="action" id="act-tpl" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="12" height="16" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/><path d="M7 8h6M7 12h6"/></svg></span><span><b>מתבנית</b><span>הזמנת עבודה, הצעת מחיר, טופס מסירה</span></span></button>
         <button class="action" id="act-dbx"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 3l5 3.2L7 9.4 2 6.2zM17 3l5 3.2-5 3.2-5-3.2zM2 12.6l5-3.2 5 3.2-5 3.2zM22 12.6l-5-3.2-5 3.2 5 3.2zM7 17l5 3.2 5-3.2-5-3.2z"/></svg></span><span><b>מדרופבוקס</b><span>לבחור מסמך מהדרופבוקס ולחתום עליו</span></span></button>
       </div>
 
@@ -552,7 +554,7 @@ async function newDoc(mode, file){
   await Store.put('docs', doc); openEditor(doc);
 }
 $('#act-self').onclick = () => newDoc('self');
-$('#act-multi').onclick = () => newDoc('multi');
+$('#act-multi').onclick = () => startForm();
 $('#act-tpl').onclick = $('#btn-templates').onclick = () => { renderTemplates(); show('s-templates'); };
 
 /* ---------- templates ---------- */
@@ -605,7 +607,7 @@ const save = () => { E.doc.updated = Date.now(); return Store.put('docs', E.doc)
 async function openEditor(doc, mode='prepare'){
   E.doc = doc; E.mode = mode; E.tool = null; E.sel = null; E.consent = false; E.activeSigner = doc.signers[0].id;
   $('#ed-title').textContent = doc.name;
-  $('#ed-rename').hidden = $('#ed-savetpl').hidden = mode !== 'prepare'; $('#ed-back').hidden = REMOTE;
+  $('#ed-rename').hidden = mode !== 'prepare'; $('#ed-savetpl').hidden = true; $('#ed-back').hidden = REMOTE;
   show('s-editor'); renderTray();
   try{ E.pagesInfo = await renderPages($('#pages'), doc.pdf); }catch(e){ $('#pages').innerHTML = '<div class="empty">לא הצלחתי להציג את המסמך.</div>'; return; }
   E.pagesInfo.forEach(p => p.ov.addEventListener('click', onOverlayClick));
@@ -681,7 +683,7 @@ function bindField(el, f, p){
 async function onFieldTap(f){
   if (E.mode === 'prepare'){
     const wasSel = E.sel === f.id; E.sel = f.id;
-    if ((E.doc.mode === 'self' && (wasSel || !f.value)) || (E.doc.mode === 'multi' && wasSel && f.signer === 'me')) { drawFields(); await fillField(f); }
+    if ((E.doc.mode === 'self' && (wasSel || !f.value)) || (E.doc.mode === 'multi' && f.signer === 'me' && (wasSel || !f.value))) { drawFields(); await fillField(f); }
     else drawFields();
     return;
   }
@@ -771,10 +773,10 @@ async function editSigners(){
 }
 
 async function startSigning(){
-  const d = E.doc; const without = d.signers.filter(s => !d.fields.some(f => f.signer === s.id));
+  const d = E.doc; nameFromFields(d); const without = d.signers.filter(s => !d.fields.some(f => f.signer === s.id));
   if (without.length && !(await confirmBox('יש חותמים בלי שדות', `${without.map(s => s.name).join(', ')} לא קיבלו אף שדה. להמשיך בלעדיהם?`, 'להמשיך'))) return;
   d.signers = d.signers.filter(s => d.fields.some(f => f.signer === s.id));
-  d.status = 'pending'; d.signIdx = d.signers.findIndex(s => d.fields.some(f => f.signer === s.id && !f.value && f.type !== 'checkbox')); if (d.signIdx < 0) d.signIdx = 0;
+  d.status = 'pending'; d.signIdx = d.signers.findIndex(s => s.id !== 'me' && d.fields.some(f => f.signer === s.id && !f.value && f.type !== 'checkbox')); if (d.signIdx < 0) d.signIdx = 0;
   d.audit.push({t:Date.now(), a:`נשלח לחתימה פרונטלית (${d.signers.length} חותמים)`, who:me().name || 'אני'});
   E.doc = d; await save(); handoff(d);
 }
@@ -1253,9 +1255,36 @@ function remoteDone(d){
   $('#rd-dl').onclick = () => downloadDoc(d);
 }
 
+/* ---------- the measurement form: the only client template ---------- */
+const FORM_ID = 'measure-form', FORM_V = 1;
+const FORM_FIELDS = [{"type":"text","page":0,"x":0.5049,"y":0.1787,"w":0.2222,"h":0.0177,"signer":"me","key":"orderNo"},{"type":"text","page":0,"x":0.0425,"y":0.1787,"w":0.2206,"h":0.0177,"signer":"me","key":"clientName"},{"type":"text","page":0,"x":0.5049,"y":0.2001,"w":0.2222,"h":0.0164,"signer":"me","key":"address"},{"type":"text","page":0,"x":0.0425,"y":0.2001,"w":0.2206,"h":0.0164,"signer":"me","key":"phone"},{"type":"text","page":0,"x":0.5049,"y":0.2203,"w":0.2222,"h":0.0177,"signer":"me","key":"apt"},{"type":"text","page":0,"x":0.0425,"y":0.2203,"w":0.2206,"h":0.0177,"signer":"me","key":"floor"},{"type":"name","page":0,"x":0.5049,"y":0.2418,"w":0.2222,"h":0.0177,"signer":"me","key":"measurer"},{"type":"date","page":0,"x":0.0425,"y":0.2418,"w":0.2206,"h":0.0177,"signer":"me","key":"measureDate"},{"type":"text","page":0,"x":0.0654,"y":0.3725,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeFront"},{"type":"text","page":0,"x":0.0654,"y":0.4154,"w":0.4428,"h":0.0177,"signer":"me","key":"edgeBack"},{"type":"checkbox","page":0,"x":0.9477,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.8566,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.7243,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.5966,"y":0.2948,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3553,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2398,"y":0.4631,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5084,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4879,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2805,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.2205,"y":0.5538,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4097,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3704,"y":0.5965,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4097,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3704,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3311,"y":0.6419,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.4883,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.449,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3907,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3514,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"checkbox","page":0,"x":0.3121,"y":0.6873,"w":0.018,"h":0.0139,"signer":"me"},{"type":"text","page":0,"x":0.0425,"y":0.75,"w":0.9412,"h":0.0227,"signer":"me","key":"notes"},{"type":"signature","page":0,"x":0.6585,"y":0.8662,"w":0.299,"h":0.053,"signer":"c1","key":"clientSig"},{"type":"signature","page":0,"x":0.3513,"y":0.8662,"w":0.2974,"h":0.053,"signer":"me","key":"measurerSig"},{"type":"date","page":0,"x":0.0425,"y":0.8737,"w":0.299,"h":0.0152,"signer":"c1","key":"signDate"}];
+async function ensureForm(){
+  for (const t of Store.all('templates')) if (t.id !== FORM_ID) await Store.del('templates', t.id);
+  for (const d of Store.all('docs')) if (d.sample) await Store.del('docs', d.id);
+  const cur = Store.get('templates', FORM_ID); if (cur && cur.v === FORM_V) return;
+  try{
+    const r = await fetch('template-measure.pdf', {cache:'no-cache'}); if (!r.ok) throw new Error(r.status);
+    const buf = await r.arrayBuffer(); const {thumb, pages} = await thumbOf(buf);
+    await Store.put('templates', {id:FORM_ID, v:FORM_V, name:'טופס אישור מדידה', created:Date.now(), pdf:buf, thumb, pages, hash:await sha256(buf),
+      signers:[{id:'me', name:'מודד', color:SIGNER_COLORS[0]}, {id:'c1', name:'לקוח', color:SIGNER_COLORS[1]}], fields:FORM_FIELDS.map(f => ({...f, id:uid(), value:'', filledAt:0}))});
+  }catch(e){ console.warn('form load failed', e); }
+}
+async function startForm(){
+  let t = Store.get('templates', FORM_ID); if (!t){ await ensureForm(); t = Store.get('templates', FORM_ID); }
+  if (!t){ toast('לא הצלחתי לטעון את הטופס. בדקו חיבור לאינטרנט'); return; }
+  await useTemplate(t);
+}
+function nameFromFields(d){
+  const v = k => (d.fields.find(f => f.key === k) || {}).value || '';
+  const client = v('clientName'), order = v('orderNo');
+  if (client){ const c = d.signers.find(s => s.id !== 'me'); if (c) c.name = client; }
+  if (client || order) d.name = ['אישור מדידה', client, order && ('הזמנה ' + order)].filter(Boolean).join(' - ');
+  const meS = d.signers.find(s => s.id === 'me'); if (meS && d.fields.some(f => f.signer === 'me' && f.type === 'signature' && f.value)){ meS.signedAt = meS.signedAt || Date.now(); meS.device = deviceLabel(); }
+}
+
 /* ---------- boot ---------- */
 async function seed(){
-  if (Store.get('kv', 'seeded')) return;
+  return;
   try{
     const buf = await samplePdf(); const {thumb, pages} = await thumbOf(buf); const h = await sha256(buf); const m = me();
     const signers = [{id:'me', name:m.name || 'אני', color:SIGNER_COLORS[0]}, {id:'c1', name:'ישראל ישראלי', color:SIGNER_COLORS[1]}];
@@ -1275,7 +1304,7 @@ async function seed(){
 (async () => {
   await Store.open();
   if (!window.pdfjsLib || !window.PDFLib){ $('#doclist').innerHTML = '<div class="empty">הספריות לא נטענו. בדקו חיבור לאינטרנט ורעננו.</div>'; return; }
-  await seed(); await Dbx.handleRedirect(); renderHome(); await handleShared();
+  await seed(); await ensureForm(); await Dbx.handleRedirect(); renderHome(); await handleShared();
 })();
 })();
 </script>
