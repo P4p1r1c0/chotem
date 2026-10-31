@@ -498,7 +498,7 @@ async function samplePdf(){
 }
 
 async function thumbOf(buf){
-  try{ const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf))}).promise; const pg = await pdf.getPage(1); const vp = pg.getViewport({scale:1}); const s = 160 / vp.width; const v = pg.getViewport({scale:s});
+  try{ const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf)), disableFontFace:true}).promise; const pg = await pdf.getPage(1); const vp = pg.getViewport({scale:1}); const s = 160 / vp.width; const v = pg.getViewport({scale:s});
     const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; await pg.render({canvasContext:cv.getContext('2d'), viewport:v}).promise; const n = pdf.numPages; pdf.destroy(); return {thumb:cv.toDataURL('image/jpeg', .7), pages:n}; }
   catch(e){ return {thumb:'', pages:0}; }
 }
@@ -582,7 +582,7 @@ async function saveTemplate(doc){
 let pdfRenderToken = 0;
 async function renderPages(container, buf){
   const token = ++pdfRenderToken; container.innerHTML = '<div class="loading">טוען את המסמך…</div>';
-  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf))}).promise;
+  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(copyBuf(buf)), disableFontFace:true}).promise;
   if (token !== pdfRenderToken) return [];
   container.innerHTML = ''; const out = [];
   const cssW = Math.min(container.clientWidth || 360, 820); const dpr = Math.min(2, window.devicePixelRatio || 1);
