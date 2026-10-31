@@ -725,7 +725,7 @@ function renderTray(){
       ${multi ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
       <div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>
       <div class="row"><span class="hint" style="flex:1 1 220px;min-width:0">${E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה · הקשה נוספת על שדה שלך ממלאת אותו' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
-      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>חתימה במכשיר</button><button class="btn" id="send-wa" ${E.doc.fields.length ? '' : 'disabled'}>שליחה בוואטסאפ</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
+      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>להתחיל חתימה</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
     $$('.tool', T).forEach(b => b.onclick = () => { E.tool = E.tool === b.dataset.tool ? null : b.dataset.tool; E.sel = null; drawFields(); });
     $$('.signer', T).forEach(b => b.onclick = () => {
       E.activeSigner = b.dataset.s;
@@ -734,7 +734,6 @@ function renderTray(){
     });
     const se = $('#sg-edit', T); if (se) se.onclick = editSigners;
     $('#go', T).onclick = multi ? startSigning : finalize;
-    const swa = $('#send-wa', T); if (swa) swa.onclick = sendRemote;
   } else {
     const s = currentSigner(); const mine = E.doc.fields.filter(f => f.signer === s.id); const req = mine.filter(f => f.type !== 'checkbox'); const done = req.filter(f => f.value).length;
     const ready = done === req.length && E.consent;
@@ -910,7 +909,7 @@ function openDoc(d){
   if (!d) return;
   if (d.status === 'completed') return viewDoc(d);
   if (d.status === 'pending') return handoff(d);
-  if (d.status === 'remote') return remoteSentScreen(d);
+  if (d.status === 'remote'){ if (d.remote && d.remote.path && Dbx.connected()) Dbx.rpc('files/delete_v2', {path:d.remote.path}).catch(() => {}); d.status = 'draft'; delete d.remote; Store.put('docs', d); return openEditor(d); }
   openEditor(d);
 }
 async function viewDoc(d){
@@ -1276,7 +1275,6 @@ async function seed(){
 (async () => {
   await Store.open();
   if (!window.pdfjsLib || !window.PDFLib){ $('#doclist').innerHTML = '<div class="empty">הספריות לא נטענו. בדקו חיבור לאינטרנט ורעננו.</div>'; return; }
-  const rp = new URLSearchParams(location.hash.slice(1)).get('r'); if (rp) return remoteSign(rp);
   await seed(); await Dbx.handleRedirect(); renderHome(); await handleShared();
 })();
 })();
