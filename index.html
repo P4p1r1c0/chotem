@@ -83,6 +83,7 @@ main{flex:1}
 .pill.pending{background:var(--warn-soft);color:var(--warn)}
 .pill.completed{background:var(--ok-soft);color:var(--ok)}
 .pill.sample{background:var(--accent-soft);color:var(--accent)}
+.pill.remote{background:var(--accent-soft);color:var(--accent)}
 .empty{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted)}
 .mysig{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px}
 .mysig .box{width:120px;height:52px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;flex:none;overflow:hidden}
@@ -92,7 +93,7 @@ main{flex:1}
 :root[data-theme="dark"] .sig-preview{filter:invert(1) hue-rotate(180deg)}
 
 /* editor */
-.pages{display:flex;flex-direction:column;align-items:center;gap:16px;padding-block:16px 220px}
+.pages{display:flex;flex-direction:column;align-items:center;gap:16px;padding-block:16px 320px}
 .page{position:relative;width:100%;background:#fff;box-shadow:var(--page-shadow);border-radius:2px}
 .page canvas{display:block;width:100%;height:auto;border-radius:2px}
 .page .pno{position:absolute;bottom:-20px;inset-inline-start:0;font-size:12px;color:var(--muted)}
@@ -314,7 +315,7 @@ const Store = {
   get(s, id){ return this.mem[s].get(id); },
   async put(s, obj){
     this.mem[s].set(obj.id, obj);
-    if (!this.db) return;
+    if (!this.db || (REMOTE && s === 'docs')) return;
     try{ await new Promise((res, rej) => { const t = this.db.transaction(s, 'readwrite'); t.objectStore(s).put(obj); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
     catch(e){ toast('לא הצלחתי לשמור במכשיר. ייתכן שאין מספיק מקום.'); }
   },
@@ -324,6 +325,7 @@ const Store = {
     try{ await new Promise((res, rej) => { const t = this.db.transaction(s, 'readwrite'); t.objectStore(s).delete(id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }catch(e){}
   }
 };
+let REMOTE = false;
 const me = () => Store.get('kv', 'me') || {id:'me', name:'', sig:'', initials:''};
 
 /* ---------- helpers ---------- */
@@ -501,7 +503,7 @@ async function thumbOf(buf){
 
 /* ---------- home ---------- */
 let filter = 'all';
-const STATUS = {draft:'טיוטה', pending:'בחתימה', completed:'חתום'};
+const STATUS = {draft:'טיוטה', pending:'בחתימה', remote:'נשלח לחתימה', completed:'חתום'};
 function renderHome(){
   const m = me();
   $('#mysig-box').innerHTML = m.sig ? `<img class="sig-preview" src="${m.sig}" alt="החתימה השמורה">` : '<span class="hint">אין חתימה שמורה</span>';
@@ -510,7 +512,7 @@ function renderHome(){
   if (filter === 'dropbox') return renderDbxList();
   const q = $('#q').value.trim();
   let docs = Store.all('docs').sort((a, b) => b.updated - a.updated);
-  if (filter !== 'all') docs = docs.filter(d => d.status === filter);
+  if (filter !== 'all') docs = docs.filter(d => d.status === filter || (filter === 'pending' && d.status === 'remote'));
   if (q) docs = docs.filter(d => d.name.includes(q) || d.signers.some(s => s.name.includes(q)));
   const L = $('#doclist');
   if (!docs.length){ L.innerHTML = `<div class="empty">${Store.all('docs').length ? 'אין מסמכים שמתאימים לסינון' : 'עוד אין מסמכים. התחילו מ"לחתום בעצמי" למעלה.'}</div>`; return; }
@@ -603,7 +605,7 @@ const save = () => { E.doc.updated = Date.now(); return Store.put('docs', E.doc)
 async function openEditor(doc, mode='prepare'){
   E.doc = doc; E.mode = mode; E.tool = null; E.sel = null; E.consent = false; E.activeSigner = doc.signers[0].id;
   $('#ed-title').textContent = doc.name;
-  $('#ed-rename').hidden = $('#ed-savetpl').hidden = mode !== 'prepare';
+  $('#ed-rename').hidden = $('#ed-savetpl').hidden = mode !== 'prepare'; $('#ed-back').hidden = REMOTE;
   show('s-editor'); renderTray();
   try{ E.pagesInfo = await renderPages($('#pages'), doc.pdf); }catch(e){ $('#pages').innerHTML = '<div class="empty">לא הצלחתי להציג את המסמך.</div>'; return; }
   E.pagesInfo.forEach(p => p.ov.addEventListener('click', onOverlayClick));
@@ -679,7 +681,7 @@ function bindField(el, f, p){
 async function onFieldTap(f){
   if (E.mode === 'prepare'){
     const wasSel = E.sel === f.id; E.sel = f.id;
-    if (E.doc.mode === 'self' && (wasSel || !f.value)) { drawFields(); await fillField(f); }
+    if ((E.doc.mode === 'self' && (wasSel || !f.value)) || (E.doc.mode === 'multi' && wasSel && f.signer === 'me')) { drawFields(); await fillField(f); }
     else drawFields();
     return;
   }
@@ -722,8 +724,8 @@ function renderTray(){
     T.innerHTML = `
       ${multi ? `<div class="signers" id="sg">${E.doc.signers.map(s => `<button class="signer" data-s="${s.id}" aria-pressed="${E.activeSigner === s.id}" style="--c:var(${s.color})"><i></i>${esc(s.name)}</button>`).join('')}<button class="btn sm" id="sg-edit">חותמים</button></div>` : ''}
       <div class="tools">${Object.entries(FIELD_TYPES).map(([k, t]) => `<button class="tool" data-tool="${k}" aria-pressed="${E.tool === k}">${ico(t.icon)}${t.label}</button>`).join('')}</div>
-      <div class="row"><span class="hint" style="flex:1;min-width:0">${E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
-      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>להתחיל חתימה</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
+      <div class="row"><span class="hint" style="flex:1 1 220px;min-width:0">${E.tool ? 'הקישו על המסמך במקום שבו יופיע השדה' : E.sel ? (multi ? 'גררו להזזה · לחיצה על חותם משייכת אליו את השדה · הקשה נוספת על שדה שלך ממלאת אותו' : 'גררו להזזה · הקשה נוספת לעריכה') : (E.doc.fields.length ? `${E.doc.fields.length} שדות` : 'בחרו סוג שדה ואז הקישו על המסמך')}</span>
+      ${multi ? `<button class="btn primary" id="go" ${E.doc.fields.length ? '' : 'disabled'}>חתימה במכשיר</button><button class="btn" id="send-wa" ${E.doc.fields.length ? '' : 'disabled'}>שליחה בוואטסאפ</button>` : `<button class="btn primary" id="go" ${E.doc.fields.length && !empty ? '' : 'disabled'}>סיום והפקת PDF</button>`}</div>`;
     $$('.tool', T).forEach(b => b.onclick = () => { E.tool = E.tool === b.dataset.tool ? null : b.dataset.tool; E.sel = null; drawFields(); });
     $$('.signer', T).forEach(b => b.onclick = () => {
       E.activeSigner = b.dataset.s;
@@ -732,6 +734,7 @@ function renderTray(){
     });
     const se = $('#sg-edit', T); if (se) se.onclick = editSigners;
     $('#go', T).onclick = multi ? startSigning : finalize;
+    const swa = $('#send-wa', T); if (swa) swa.onclick = sendRemote;
   } else {
     const s = currentSigner(); const mine = E.doc.fields.filter(f => f.signer === s.id); const req = mine.filter(f => f.type !== 'checkbox'); const done = req.filter(f => f.value).length;
     const ready = done === req.length && E.consent;
@@ -864,7 +867,7 @@ async function finalize(){
       else pg.drawImage(img, {x:width - vy, y:height - vx, width:w, height:h, rotate:deg(270)});
     }
     const ap = await pdf.embedPng(await auditPagePng(d)); const p = pdf.addPage([595.28, 841.89]); p.drawImage(ap, {x:0, y:0, width:595.28, height:841.89});
-    pdf.setTitle(d.name); pdf.setProducer('חותם'); pdf.setModificationDate(new Date());
+    pdf.setTitle(d.name); pdf.setSubject('chotem:' + d.id); pdf.setProducer('חותם'); pdf.setModificationDate(new Date());
     const bytes = await pdf.save(); d.final = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength); d.finalHash = await sha256(d.final);
     d.status = 'completed'; d.completed = Date.now(); d.updated = Date.now(); await Store.put('docs', d);
     doneScreen(d);
@@ -872,6 +875,7 @@ async function finalize(){
 }
 
 function doneScreen(d){
+  if (REMOTE) return remoteDone(d);
   show('s-handoff');
   $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(--ok)">✓</div><h2>המסמך חתום</h2><p>${esc(d.name)} · ${d.signers.map(s => esc(s.name)).join(', ')}</p>
     <div class="hash" title="טביעת SHA-256 של הקובץ החתום">${d.finalHash}</div>
@@ -906,6 +910,7 @@ function openDoc(d){
   if (!d) return;
   if (d.status === 'completed') return viewDoc(d);
   if (d.status === 'pending') return handoff(d);
+  if (d.status === 'remote') return remoteSentScreen(d);
   openEditor(d);
 }
 async function viewDoc(d){
@@ -930,7 +935,8 @@ async function viewDoc(d){
 
 /* ---------- Dropbox (installed app only; the artifact sandbox blocks Dropbox's API) ---------- */
 const Dbx = {
-  cfg(){ return Store.get('kv', 'dbx') || {id:'dbx', key:'oxmpuft7fiizxrs', refresh:'', access:'', exp:0, folder:'/מסמכים חתומים', account:''}; },
+  cfg(){ const c0 = Store.get('kv', 'dbx'); if (c0 && c0.folder === '/מסמכים חתומים') c0.folder = '/חתימות'; return c0 || {id:'dbx', key:'oxmpuft7fiizxrs', refresh:'', access:'', exp:0, folder:'/חתימות', account:''}; },
+  pendingDir(){ return '/חתימות/.ממתינים'; },
   available(){ return !inArtifact(); },
   connected(){ const c = this.cfg(); return this.available() && !!c.refresh; },
   redirect(){ return location.origin + location.pathname; },
@@ -978,8 +984,15 @@ const Dbx = {
     return r;
   },
   async rpc(ep, body){ const r = await this.call(t => fetch('https://api.dropboxapi.com/2/' + ep, {method:'POST', headers:{Authorization:'Bearer ' + t, 'Content-Type':'application/json'}, body:JSON.stringify(body)})); return r.json(); },
-  async upload(path, data){ const r = await this.call(t => fetch('https://content.dropboxapi.com/2/files/upload', {method:'POST', headers:{Authorization:'Bearer ' + t, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg':this.arg({path, mode:'add', autorename:true, mute:false})}, body:data})); return r.json(); },
+  async upload(path, data, mode='add'){ const r = await this.call(t => fetch('https://content.dropboxapi.com/2/files/upload', {method:'POST', headers:{Authorization:'Bearer ' + t, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg':this.arg({path, mode, autorename:mode === 'add', mute:false})}, body:data})); return r.json(); },
   async download(path){ const r = await this.call(t => fetch('https://content.dropboxapi.com/2/files/download', {method:'POST', headers:{Authorization:'Bearer ' + t, 'Dropbox-API-Arg':this.arg({path})}})); return r.arrayBuffer(); },
+  async shareLink(path){
+    let url;
+    try{ url = (await this.rpc('sharing/create_shared_link_with_settings', {path, settings:{audience:'public', access:'viewer', allow_download:true}})).url; }
+    catch(e){ if (/shared_link_already_exists/.test(e.summary || '')){ const j = await this.rpc('sharing/list_shared_links', {path, direct_only:true}); url = j.links && j.links[0] && j.links[0].url; } else throw e; }
+    if (!url) throw {code:'api', summary:'no_link'};
+    const u = new URL(url); u.hostname = 'dl.dropboxusercontent.com'; u.searchParams.delete('dl'); return u.toString();
+  },
   async list(path){
     let j = await this.rpc('files/list_folder', {path: path === '/' ? '' : path, recursive:false, limit:500}); const out = [...j.entries];
     while (j.has_more && out.length < 3000){ j = await this.rpc('files/list_folder/continue', {cursor:j.cursor}); out.push(...j.entries); }
@@ -1116,6 +1129,131 @@ $('#act-dbx').onclick = async () => {
   try{ const buf = await Dbx.download(e.path_lower); newDoc(mode, new File([buf], e.name, {type:mimeOf(e.name)})); }catch(err){ toast(dbxErr(err)); }
 };
 
+
+/* ---------- remote signing over WhatsApp ---------- */
+const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => { const b = atob(s); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.buffer; };
+const normPhone = p => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '972' + d.slice(1); return d; };
+function openOut(url){ const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+
+async function burnFields(buf, fields){
+  const pdf = await PDFLib.PDFDocument.load(copyBuf(buf), {ignoreEncryption:true}); const pages = pdf.getPages(); const deg = PDFLib.degrees;
+  for (const f of fields){
+    if (!f.value) continue; const pg = pages[f.page]; if (!pg) continue;
+    const {width, height} = pg.getSize(); const rot = ((pg.getRotation().angle % 360) + 360) % 360;
+    const vw = rot % 180 ? height : width, vh = rot % 180 ? width : height;
+    const w = f.w*vw, h = f.h*vh, vx = f.x*vw, vy = f.y*vh;
+    const img = await pdf.embedPng(await fieldPng(f, w, h));
+    if (rot === 0) pg.drawImage(img, {x:vx, y:height - vy - h, width:w, height:h});
+    else if (rot === 90) pg.drawImage(img, {x:vy, y:vx, width:w, height:h, rotate:deg(90)});
+    else if (rot === 180) pg.drawImage(img, {x:width - vx, y:vy, width:w, height:h, rotate:deg(180)});
+    else pg.drawImage(img, {x:width - vy, y:height - vx, width:w, height:h, rotate:deg(270)});
+  }
+  const out = await pdf.save(); return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
+}
+
+function waMessage(d){
+  const r = d.signers.find(s => s.id === d.remote.signer) || {name:''};
+  return `שלום ${r.name},\n${me().name || 'אני'} שלח/ה לך את "${d.name}" לחתימה.\nחותמים ישר מהטלפון, בלי הורדה ובלי הרשמה:\n${d.remote.link}`;
+}
+function waSend(d){ openOut(`https://wa.me/${normPhone(d.remote.phone)}?text=${encodeURIComponent(waMessage(d))}`); }
+
+async function sendRemote(){
+  const d = E.doc;
+  if (!Dbx.connected()){ toast('שליחה מרחוק עובדת דרך דרופבוקס. חברו אותו במסך הראשי'); return; }
+  const remote = d.signers.filter(s => s.id !== 'me' && d.fields.some(f => f.signer === s.id));
+  if (remote.length !== 1){ toast(remote.length ? 'אפשר לשלוח מרחוק לחותם אחד בכל פעם' : 'סמנו שדות לחותם שיחתום מרחוק'); return; }
+  const r = remote[0];
+  if (d.fields.some(f => f.signer === 'me' && !f.value && f.type !== 'checkbox')){ toast('קודם מלאו את השדות שלכם: הקשה כפולה על שדה בצבע שלכם'); return; }
+  const phone = await askText(`מספר הוואטסאפ של ${r.name}`, d.remote?.phone || '', {placeholder:'050-1234567 · אפשר להשאיר ריק ולבחור בוואטסאפ', ok:'יצירת קישור ושליחה', type:'tel'});
+  if (phone === null) return;
+  show('s-handoff'); $('#handoff').innerHTML = '<div class="big-seal">ח</div><h2>מכין קישור לחתימה…</h2>';
+  try{
+    const now = Date.now(); const meS = d.signers.find(s => s.id === 'me');
+    if (meS && d.fields.some(f => f.signer === 'me' && f.value)){ meS.signedAt = now; meS.device = deviceLabel(); }
+    const base = await burnFields(d.pdf, d.fields.filter(f => f.signer === 'me'));
+    const audit = [...d.audit, {t:now, a:`נשלח לחתימה מרחוק ל${r.name}`, who:me().name || 'אני'}];
+    const pkg = {v:1, id:d.id, name:d.name, from:me().name || 'השולח', hash:d.hash, created:d.created, pages:d.pages, remoteId:r.id,
+      signers:d.signers.filter(s => s.id === 'me' || s.id === r.id).map(s => ({id:s.id, name:s.name, color:s.color, signedAt:s.id === 'me' ? (s.signedAt || 0) : 0, device:s.id === 'me' ? (s.device || '') : ''})),
+      fields:d.fields.filter(f => f.signer === r.id).map(f => ({...f, value:'', filledAt:0})), audit, pdf:b64(base)};
+    const path = `${Dbx.pendingDir()}/${d.id}.json`;
+    await Dbx.upload(path, new Blob([JSON.stringify(pkg)], {type:'application/json'}), 'overwrite');
+    const url = await Dbx.shareLink(path);
+    d.status = 'remote'; d.audit = audit; d.remote = {phone, signer:r.id, path, link:location.origin + location.pathname + '#r=' + encodeURIComponent(url), sentAt:now};
+    await save(); waSend(d); remoteSentScreen(d);
+  }catch(e){
+    console.error(e);
+    if (e && (e.status === 401 || /missing_scope/.test(e.summary || ''))){
+      if (await confirmBox('צריך אישור נוסף בדרופבוקס', 'כדי ליצור קישור לחתימה, דרופבוקס צריך לאשר הרשאת שיתוף. אחרי האישור חוזרים לכאן ולוחצים שוב "שליחה בוואטסאפ".', 'לאישור בדרופבוקס')) Dbx.connect(Dbx.cfg().key);
+      openEditor(d); return;
+    }
+    toast(dbxErr(e)); openEditor(d);
+  }
+}
+
+function remoteSentScreen(d){
+  show('s-handoff'); const r = d.signers.find(s => s.id === d.remote.signer) || {name:'', color:'--s2'};
+  $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(${r.color})">✈</div><h2>נשלח ל${esc(r.name)} לחתימה</h2>
+    <p>${esc(d.name)} · ${fmtDT(d.remote.sentAt)}</p>
+    <p>כש${esc(r.name)} יחתום, המסמך החתום יגיע אליך בוואטסאפ. משתפים אותו מוואטסאפ ל"חותם", או לוחצים כאן "קיבלתי", והוא נשמר בדרופבוקס בתיקייה חתימות.</p>
+    <div class="stack"><button class="btn primary" id="rs-got">קיבלתי את המסמך החתום</button><button class="btn" id="rs-wa">שליחה שוב בוואטסאפ</button><button class="btn" id="rs-copy">העתקת הקישור</button><button class="btn" id="rs-edit">חזרה לעריכה</button><button class="btn" id="rs-home">לרשימת המסמכים</button></div>`;
+  $('#rs-got').onclick = async () => { const f = await pickFile(); if (f) receiveSigned(f); };
+  $('#rs-wa').onclick = () => waSend(d);
+  $('#rs-copy').onclick = () => { navigator.clipboard?.writeText(d.remote.link).then(() => toast('הקישור הועתק'), () => toast(d.remote.link)); };
+  $('#rs-edit').onclick = async () => { d.status = 'draft'; await Store.put('docs', d); openEditor(d); };
+  $('#rs-home').onclick = goHome;
+}
+
+async function receiveSigned(file){
+  let buf, id = '';
+  try{ buf = await file.arrayBuffer(); const p = await PDFLib.PDFDocument.load(buf.slice(0), {ignoreEncryption:true, updateMetadata:false}); id = ((p.getSubject() || '').match(/chotem:([\w-]+)/) || [])[1] || ''; }
+  catch(e){ toast('זה לא קובץ PDF תקין'); return; }
+  let d = id && Store.get('docs', id); const now = Date.now();
+  if (d){
+    d.final = buf; d.finalHash = await sha256(buf); d.status = 'completed'; d.completed = now; d.updated = now;
+    d.audit.push({t:now, a:'המסמך החתום התקבל בחזרה', who:'חותם'});
+    if (d.remote && d.remote.path && Dbx.connected()) Dbx.rpc('files/delete_v2', {path:d.remote.path}).catch(() => {});
+  } else {
+    const {thumb, pages} = await thumbOf(buf); const h = await sha256(buf);
+    d = {id:uid(), name:file.name.replace(/\.pdf$/i, '').replace(/\s*-\s*חתום$/, ''), mode:'self', status:'completed', created:now, updated:now, completed:now, pdf:buf, final:buf, thumb, pages, signers:[], fields:[], audit:[{t:now, a:'התקבל מסמך חתום', who:'חותם'}], hash:h, finalHash:h};
+  }
+  await Store.put('docs', d); doneScreen(d);
+}
+
+async function handleShared(){
+  if (!new URLSearchParams(location.search).has('shared')) return false;
+  history.replaceState(null, '', location.pathname);
+  try{
+    const c = await caches.open('chotem-share'); const r = await c.match('shared-file'); if (!r) return false;
+    const name = decodeURIComponent(r.headers.get('x-name') || 'document.pdf'); const b = await r.blob(); await c.delete('shared-file');
+    await receiveSigned(new File([b], name, {type:'application/pdf'})); return true;
+  }catch(e){ return false; }
+}
+
+/* the customer's side: opened from the WhatsApp link */
+async function remoteSign(url){
+  REMOTE = true; show('s-handoff'); $('#handoff').innerHTML = '<div class="big-seal">ח</div><h2>טוען את המסמך…</h2>';
+  let pkg;
+  try{ const r = await fetch(url, {cache:'no-store'}); if (!r.ok) throw new Error(r.status); pkg = await r.json(); }
+  catch(e){ $('#handoff').innerHTML = '<div class="big-seal" style="--c:var(--bad)">!</div><h2>המסמך לא זמין</h2><p>ייתכן שהוא כבר נחתם או שהשליחה בוטלה. בקשו מהשולח קישור חדש.</p>'; return; }
+  const d = {id:pkg.id, name:pkg.name, mode:'remote', status:'pending', created:pkg.created, updated:Date.now(), pdf:unb64(pkg.pdf), pages:pkg.pages, signers:pkg.signers, fields:pkg.fields, audit:pkg.audit, hash:pkg.hash, from:pkg.from};
+  d.signIdx = Math.max(0, d.signers.findIndex(s => s.id === pkg.remoteId)); const s = d.signers[d.signIdx];
+  $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(${s.color})">${esc((s.name || '?').trim()[0] || '?')}</div><p>${esc(pkg.from)} מבקש/ת את חתימתך</p><h2>${esc(d.name)}</h2>
+    <p>${d.fields.filter(f => f.type !== 'checkbox').length} שדות למילוי. החתימה נשארת בטלפון שלך עד שתשלח/י את המסמך בחזרה.</p>
+    <div class="stack"><button class="btn primary" id="rm-go">לקריאה וחתימה</button></div>`;
+  $('#rm-go').onclick = () => { d.audit.push({t:Date.now(), a:'פתח/ה את המסמך לחתימה מרחוק', who:s.name}); E.signerIdx = d.signIdx; openEditor(d, 'sign'); };
+}
+
+function remoteDone(d){
+  show('s-handoff'); const file = new File([d.final], fileName(d), {type:'application/pdf'});
+  $('#handoff').innerHTML = `<div class="big-seal" style="--c:var(--ok)">✓</div><h2>חתמת. נשאר לשלוח בחזרה</h2>
+    <p>שלח/י את המסמך החתום ל${esc(d.from)} בוואטסאפ, באותה שיחה שממנה הגיע הקישור.</p>
+    <div class="stack">${canShare() ? '<button class="btn primary" id="rd-sh">שליחה בחזרה בוואטסאפ</button>' : ''}<button class="btn ${canShare() ? '' : 'primary'}" id="rd-dl">שמירת המסמך בטלפון</button></div>
+    ${canShare() ? '' : '<p>אחרי השמירה, מצרפים את הקובץ בוואטסאפ דרך 📎 ← מסמך.</p>'}`;
+  const sh = $('#rd-sh'); if (sh) sh.onclick = async () => { try{ await navigator.share({files:[file], text:`"${d.name}" חתום`}); toast('נשלח. תודה!'); }catch(e){ if (e.name !== 'AbortError') toast('השיתוף לא הצליח, נסו "שמירת המסמך"'); } };
+  $('#rd-dl').onclick = () => downloadDoc(d);
+}
+
 /* ---------- boot ---------- */
 async function seed(){
   if (Store.get('kv', 'seeded')) return;
@@ -1138,7 +1276,8 @@ async function seed(){
 (async () => {
   await Store.open();
   if (!window.pdfjsLib || !window.PDFLib){ $('#doclist').innerHTML = '<div class="empty">הספריות לא נטענו. בדקו חיבור לאינטרנט ורעננו.</div>'; return; }
-  await seed(); await Dbx.handleRedirect(); renderHome();
+  const rp = new URLSearchParams(location.hash.slice(1)).get('r'); if (rp) return remoteSign(rp);
+  await seed(); await Dbx.handleRedirect(); renderHome(); await handleShared();
 })();
 })();
 </script>
