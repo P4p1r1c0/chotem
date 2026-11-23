@@ -147,6 +147,14 @@ main{flex:1}
 .qf-opt[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .qf-sig{display:flex;gap:10px;align-items:center}
 .qf-sig img{height:42px;max-width:160px;background:#fff;border-radius:6px;border:1px solid var(--line)}
+.mic{display:inline-flex;align-items:center;gap:4px}
+.mic svg{width:18px;height:18px}
+.rec-box{display:flex;align-items:center;justify-content:center;gap:12px;font-size:34px;font-variant-numeric:tabular-nums;padding:14px 0}
+.rec-dot{width:18px;height:18px;border-radius:50%;background:#e5383b;animation:recp 1s infinite}
+.rec-dot.off{animation:none;background:var(--muted)}
+@keyframes recp{50%{opacity:.25}}
+.vn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.vn audio{flex:1;min-width:0;height:36px}
 
 /* handoff + done */
 .center{min-height:calc(100vh - 140px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding-block:30px}
@@ -847,12 +855,53 @@ function renderTray(){
 
 function zoomRow(withSave){
   const z = (E.pagesInfo && E.pagesInfo.zoom) || 1;
-  return `<div class="zoomrow"><button class="zbtn" id="zout" aria-label="הקטנה">−</button><span class="zval" id="zval">${Math.round(z * 100)}%</span><button class="zbtn" id="zin" aria-label="הגדלה">+</button><span class="spacer"></span><button class="btn sm" id="qfill">מילוי מהיר</button>${withSave ? '<button class="btn sm" id="dsave">שמירה</button>' : ''}</div>`;
+  return `<div class="zoomrow"><button class="zbtn" id="zout" aria-label="הקטנה">−</button><span class="zval" id="zval">${Math.round(z * 100)}%</span><button class="zbtn" id="zin" aria-label="הגדלה">+</button><span class="spacer"></span><button class="btn sm" id="qfill">מילוי מהיר</button>${withSave ? `<button class="btn sm mic" id="vrec" aria-label="הקלטת הערה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>${(E.doc.voice || []).length || ''}</button><button class="btn sm" id="dsave">שמירה</button>` : ''}</div>`;
 }
 function bindZoomRow(T){
   const z = () => (E.pagesInfo && E.pagesInfo.zoom) || 1;
   $('#zout', T).onclick = () => setZoom(z() / 1.25); $('#zin', T).onclick = () => setZoom(z() * 1.25);
   $('#qfill', T).onclick = quickFill; const ds = $('#dsave', T); if (ds) ds.onclick = saveDraft;
+  const vr = $('#vrec', T); if (vr) vr.onclick = recordNote;
+}
+
+const fmtDur = s => `${Math.floor(s / 60)}:${pad2(s % 60)}`;
+async function recordNote(){
+  const d = E.doc;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){ toast('ההקלטה לא נתמכת בדפדפן הזה'); return; }
+  let stream; try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e){ toast('אין גישה למיקרופון. יש לאשר מיקרופון בהגדרות הדפדפן'); return; }
+  const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const rec = new MediaRecorder(stream, type ? {mimeType:type} : undefined); const chunks = []; rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+  const t0 = Date.now(); let timer, blob = null, dur = 0, cancelled = false;
+  const stop = () => new Promise(r => { if (rec.state === 'inactive') return r(); rec.onstop = () => r(); rec.stop(); });
+  const finish = async () => { clearInterval(timer); if (!blob){ dur = Math.max(1, Math.round((Date.now() - t0) / 1000)); await stop(); blob = new Blob(chunks, {type:rec.mimeType || type || 'audio/webm'}); } };
+  const res = await modal(`<h3>הערה קולית</h3><div class="rec-box"><span class="rec-dot"></span><span id="rec-t">0:00</span></div><p class="hint" id="rec-h" style="text-align:center">מקליט… אפשר לדבר</p><div id="rec-play"></div><div class="foot"><button class="btn" data-x>ביטול</button><button class="btn primary" id="rec-stop">עצירה</button></div>`, (s, close) => {
+    rec.start(500);
+    timer = setInterval(() => { $('#rec-t', s).textContent = fmtDur(Math.floor((Date.now() - t0) / 1000)); }, 250);
+    $('[data-x]', s).onclick = async () => { cancelled = true; clearInterval(timer); await stop(); close(null); };
+    $('#rec-stop', s).onclick = async () => {
+      if (blob) return close(true);
+      await finish(); $('.rec-dot', s).classList.add('off'); $('#rec-t', s).textContent = fmtDur(dur);
+      $('#rec-h', s).textContent = 'אפשר להאזין לפני השמירה';
+      $('#rec-play', s).innerHTML = `<audio controls src="${URL.createObjectURL(blob)}" style="width:100%"></audio>`;
+      $('#rec-stop', s).textContent = 'שמירה';
+    };
+  });
+  if (!res && !cancelled) await finish();
+  clearInterval(timer); if (rec.state !== 'inactive') rec.stop(); stream.getTracks().forEach(t => t.stop());
+  if (cancelled || !blob || !blob.size) return;
+  const ext = /mp4/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
+  d.voice = d.voice || []; const note = {id:uid(), t:Date.now(), dur, type:blob.type, ext, buf:await blob.arrayBuffer(), n:d.voice.length + 1};
+  d.voice.push(note); d.audit.push({t:Date.now(), a:`הוקלטה הערה קולית (${fmtDur(dur)})`, who:me().name || 'מודד'});
+  await save(); renderTray();
+  if (Dbx.connected()){ try{ await uploadVoice(d, note); toast('ההקלטה נשמרה בדרופבוקס'); }catch(e){ toast('ההקלטה נשמרה במסמך. ההעלאה לדרופבוקס נכשלה, ננסה שוב בסיום'); } }
+  else toast('ההקלטה נשמרה במסמך. היא תעלה לדרופבוקס אחרי חיבור');
+}
+async function uploadVoice(d, note){
+  if (d.tpl) nameFromFields(d);
+  const dt = new Date(note.t), folder = (Dbx.cfg().folder || '').replace(/\/+$/, '');
+  const path = `${folder}/${d.name.replace(/[\\/:*?"<>|]/g, '_')} - הערה קולית ${note.n} (${pad2(dt.getHours())}-${pad2(dt.getMinutes())}).${note.ext}`;
+  const r = await Dbx.upload(path, new Blob([note.buf], {type:note.type}));
+  note.dbx = r.path_display; await Store.put('docs', d); return r;
 }
 
 function nextEmpty(){
@@ -1200,6 +1249,7 @@ async function dbxUploadDoc(d){
   const c = Dbx.cfg(); const folder = (c.folder || '').replace(/\/+$/, '');
   const r = await Dbx.upload(`${folder}/${fileName(d)}`, new Blob([d.final], {type:'application/pdf'}));
   d.dbx = {path:r.path_display, at:Date.now()}; d.audit.push({t:Date.now(), a:'נשמר בדרופבוקס', who:'חותם'}); await Store.put('docs', d);
+  for (const n of (d.voice || [])) if (!n.dbx){ try{ await uploadVoice(d, n); }catch(e){} }
   return d.dbx;
 }
 async function dbxAutoSave(d, host){
